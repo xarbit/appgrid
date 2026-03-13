@@ -1,0 +1,23 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "AppGrid"
+            }
+        ],
+        "Category": "Application Launchers",
+        "Description": "A macOS Tahoe-style application grid launcher",
+        "FormFactors": [
+            "desktop"
+        ],
+        "Icon": "start-here-kde-symbolic",
+        "Id": "org.kde.plasma.appgrid",
+        "License": "GPL-2.0+",
+        "Name": "AppGrid"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0",
+    "X-Plasma-Provides": [
+        "org.kde.plasma.launchermenu"
+    ]
+}

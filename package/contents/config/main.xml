@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0
+      http://www.kde.org/standards/kcfg/1.0/kcfg.xsd" >
+  <kcfgfile name=""/>
+
+  <group name="General">
+    <entry name="icon" type="String">
+      <label>The name of the icon to use for the compact representation.</label>
+      <default>start-here-kde-symbolic</default>
+    </entry>
+    <entry name="useCustomButtonImage" type="Bool">
+      <label>Whether to use a custom image instead of an icon.</label>
+      <default>false</default>
+    </entry>
+    <entry name="customButtonImage" type="Url">
+      <label>The URL of the custom image to use instead of an icon.</label>
+      <default></default>
+    </entry>
+  </group>
+</kcfg>

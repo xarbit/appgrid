@@ -1,0 +1,7 @@
+.claude
+build/
+pkg/
+src/build/
+src/metadata.json
+*.pkg.tar.zst
+*.pkg.tar.xz
