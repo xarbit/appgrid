@@ -1,0 +1,354 @@
+name: Build Packages
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  version:
+    name: Resolve version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      is_release: ${{ steps.version.outputs.is_release }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine version
+        id: version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/v}"
+            echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+            echo "is_release=true" >> "$GITHUB_OUTPUT"
+          else
+            BASE_VERSION=$(grep -oP 'project\(AppGrid VERSION \K[0-9]+\.[0-9]+\.[0-9]+' CMakeLists.txt)
+            SHORT_SHA=$(git rev-parse --short HEAD)
+            echo "version=${BASE_VERSION}~git.${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+            echo "is_release=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  arch:
+    name: Arch Linux
+    needs: version
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    env:
+      APP_VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - name: Install dependencies
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm --needed \
+            base-devel git cmake extra-cmake-modules \
+            qt6-base qt6-declarative \
+            libplasma kpackage kio kservice ki18n \
+            kcoreaddons kwindowsystem layer-shell-qt \
+            plasma-workspace
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX=/usr
+          cmake --build build -j$(nproc)
+
+      - name: Package
+        run: |
+          DESTDIR="$PWD/pkg" cmake --install build
+          cd pkg
+          tar czf ../plasma6-applets-appgrid-${APP_VERSION}-1-arch-x86_64.tar.gz .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: arch-package
+          path: plasma6-applets-appgrid-*.tar.gz
+
+  fedora:
+    name: Fedora
+    needs: version
+    runs-on: ubuntu-latest
+    container: fedora:latest
+    env:
+      APP_VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - name: Install dependencies
+        run: |
+          dnf install -y \
+            cmake extra-cmake-modules gcc-c++ \
+            qt6-qtbase-devel qt6-qtdeclarative-devel \
+            libplasma-devel kf6-kpackage-devel kf6-kio-devel \
+            kf6-kservice-devel kf6-ki18n-devel kf6-kcoreaddons-devel \
+            kf6-kwindowsystem-devel layer-shell-qt-devel \
+            libkworkspace6-devel plasma-workspace-devel \
+            rpm-build
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX=/usr
+          cmake --build build -j$(nproc)
+
+      - name: Package RPM
+        run: |
+          DESTDIR="$PWD/pkg" cmake --install build
+          FEDORA_VER=$(rpm -E %fedora)
+          rpmbuild -bb --build-in-place \
+            --define "_topdir $PWD/rpmbuild" \
+            --define "_builddir $PWD" \
+            --define "version ${APP_VERSION}" \
+            --define "release 1.fc${FEDORA_VER}" \
+            /dev/stdin <<'SPEC'
+          Name:           plasma-applet-appgrid
+          Version:        %{version}
+          Release:        %{release}
+          Summary:        A modern fullscreen application launcher for KDE Plasma
+          License:        GPL-2.0-or-later
+          URL:            https://github.com/xarbit/appgrid
+
+          %description
+          A modern fullscreen application launcher for KDE Plasma,
+          inspired by macOS Launchpad and COSMIC.
+
+          %install
+          cp -a %{_builddir}/pkg/* %{buildroot}/
+
+          %files
+          /usr/lib64/qt6/plugins/plasma/applets/dev.xarbit.appgrid.so
+          /usr/share/plasma/plasmoids/dev.xarbit.appgrid/
+          /usr/share/metainfo/dev.xarbit.appgrid.metainfo.xml
+          /usr/share/locale/*/LC_MESSAGES/dev.xarbit.appgrid.mo
+          SPEC
+          find rpmbuild/RPMS -name '*.rpm' -exec cp {} . \;
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fedora-package
+          path: '*.rpm'
+
+  opensuse-tumbleweed:
+    name: openSUSE Tumbleweed
+    needs: version
+    runs-on: ubuntu-latest
+    container: opensuse/tumbleweed:latest
+    env:
+      APP_VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - name: Install dependencies
+        run: |
+          zypper --non-interactive install \
+            cmake extra-cmake-modules gcc-c++ \
+            qt6-base-devel qt6-declarative-devel \
+            libplasma-devel kf6-kpackage-devel kf6-kio-devel \
+            kf6-kservice-devel kf6-ki18n-devel kf6-kcoreaddons-devel \
+            kf6-kwindowsystem-devel layer-shell-qt-devel \
+            libkworkspace6-devel plasma6-workspace-devel \
+            rpm-build
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX=/usr
+          cmake --build build -j$(nproc)
+
+      - name: Package RPM
+        run: |
+          DESTDIR="$PWD/pkg" cmake --install build
+          TW_SNAPSHOT=$(grep -oP 'VERSION_ID="\K[^"]+' /etc/os-release)
+          rpmbuild -bb --build-in-place \
+            --define "_topdir $PWD/rpmbuild" \
+            --define "_builddir $PWD" \
+            --define "version ${APP_VERSION}" \
+            --define "release 1.opensuse.tw${TW_SNAPSHOT}" \
+            /dev/stdin <<'SPEC'
+          Name:           plasma6-applet-appgrid
+          Version:        %{version}
+          Release:        %{release}
+          Summary:        A modern fullscreen application launcher for KDE Plasma
+          License:        GPL-2.0-or-later
+          URL:            https://github.com/xarbit/appgrid
+
+          %description
+          A modern fullscreen application launcher for KDE Plasma,
+          inspired by macOS Launchpad and COSMIC.
+
+          %install
+          cp -a %{_builddir}/pkg/* %{buildroot}/
+
+          %files
+          /usr/lib64/qt6/plugins/plasma/applets/dev.xarbit.appgrid.so
+          /usr/share/plasma/plasmoids/dev.xarbit.appgrid/
+          /usr/share/metainfo/dev.xarbit.appgrid.metainfo.xml
+          /usr/share/locale/*/LC_MESSAGES/dev.xarbit.appgrid.mo
+          SPEC
+          find rpmbuild/RPMS -name '*.rpm' -exec cp {} . \;
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: opensuse-tumbleweed-package
+          path: '*.rpm'
+
+  opensuse-leap:
+    name: openSUSE Leap
+    needs: version
+    runs-on: ubuntu-latest
+    container: opensuse/leap:latest
+    env:
+      APP_VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - name: Install dependencies
+        run: |
+          zypper --non-interactive install \
+            cmake extra-cmake-modules gcc-c++ \
+            qt6-base-devel qt6-declarative-devel \
+            libplasma-devel kf6-kpackage-devel kf6-kio-devel \
+            kf6-kservice-devel kf6-ki18n-devel kf6-kcoreaddons-devel \
+            kf6-kwindowsystem-devel layer-shell-qt-devel \
+            libkworkspace6-devel plasma6-workspace-devel \
+            rpm-build
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX=/usr
+          cmake --build build -j$(nproc)
+
+      - name: Package RPM
+        run: |
+          DESTDIR="$PWD/pkg" cmake --install build
+          LEAP_VER=$(grep -oP 'VERSION_ID="\K[^"]+' /etc/os-release)
+          rpmbuild -bb --build-in-place \
+            --define "_topdir $PWD/rpmbuild" \
+            --define "_builddir $PWD" \
+            --define "version ${APP_VERSION}" \
+            --define "release 1.opensuse.leap${LEAP_VER}" \
+            /dev/stdin <<'SPEC'
+          Name:           plasma6-applet-appgrid
+          Version:        %{version}
+          Release:        %{release}
+          Summary:        A modern fullscreen application launcher for KDE Plasma
+          License:        GPL-2.0-or-later
+          URL:            https://github.com/xarbit/appgrid
+
+          %description
+          A modern fullscreen application launcher for KDE Plasma,
+          inspired by macOS Launchpad and COSMIC.
+
+          %install
+          cp -a %{_builddir}/pkg/* %{buildroot}/
+
+          %files
+          /usr/lib64/qt6/plugins/plasma/applets/dev.xarbit.appgrid.so
+          /usr/share/plasma/plasmoids/dev.xarbit.appgrid/
+          /usr/share/metainfo/dev.xarbit.appgrid.metainfo.xml
+          /usr/share/locale/*/LC_MESSAGES/dev.xarbit.appgrid.mo
+          SPEC
+          find rpmbuild/RPMS -name '*.rpm' -exec cp {} . \;
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: opensuse-leap-package
+          path: '*.rpm'
+
+  ubuntu:
+    name: Ubuntu
+    needs: version
+    runs-on: ubuntu-latest
+    container: ubuntu:oracular
+    env:
+      APP_VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - name: Install dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          apt-get update
+          apt-get install -y \
+            cmake extra-cmake-modules g++ \
+            qt6-base-dev qt6-declarative-dev \
+            libplasma-dev libkf6package-dev libkf6kio-dev \
+            libkf6service-dev libkf6i18n-dev libkf6coreaddons-dev \
+            libkf6windowsystem-dev liblayershellqt-dev \
+            libkworkspace6-dev plasma-workspace-dev \
+            dpkg-dev debhelper lsb-release
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX=/usr
+          cmake --build build -j$(nproc)
+
+      - name: Package DEB
+        run: |
+          DESTDIR="$PWD/pkg" cmake --install build
+          mkdir -p pkg/DEBIAN
+          UBUNTU_VER=$(grep -oP 'VERSION_ID="\K[^"]+' /etc/os-release)
+          UBUNTU_CODENAME=$(grep -oP 'VERSION_CODENAME=\K.*' /etc/os-release)
+          cat > pkg/DEBIAN/control <<EOF
+          Package: plasma-applet-appgrid
+          Version: ${APP_VERSION}-1ubuntu${UBUNTU_VER}
+          Section: kde
+          Priority: optional
+          Architecture: amd64
+          Depends: plasma-workspace, libkf6service6, libkf6i18n6
+          Maintainer: Jason Scurtu <jscurtu@gmail.com>
+          Description: A modern fullscreen application launcher for KDE Plasma
+           A modern fullscreen application launcher for KDE Plasma,
+           inspired by macOS Launchpad and COSMIC.
+          Homepage: https://github.com/xarbit/appgrid
+          EOF
+          dpkg-deb --build pkg \
+            "plasma-applet-appgrid_${APP_VERSION}-1ubuntu${UBUNTU_VER}_${UBUNTU_CODENAME}_amd64.deb"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ubuntu-package
+          path: '*.deb'
+
+  release:
+    name: Create Release
+    needs: [version, arch, fedora, opensuse-tumbleweed, opensuse-leap, ubuntu]
+    runs-on: ubuntu-latest
+    if: needs.version.outputs.is_release == 'true'
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: List packages
+        run: find artifacts -type f | sort
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            artifacts/*

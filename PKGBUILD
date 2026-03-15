@@ -1,6 +1,6 @@
 # Maintainer: Jason Scurtu <jscurtu@gmail.com>
 pkgname=appgrid
-pkgver=1.0
+pkgver=1.0.0
 pkgrel=1
 pkgdesc="A modern fullscreen application launcher for KDE Plasma"
 arch=('x86_64')
