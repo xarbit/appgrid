@@ -2,25 +2,20 @@
     SPDX-FileCopyrightText: 2026 AppGrid Contributors
     SPDX-License-Identifier: GPL-2.0-or-later
 
-    Root plasmoid item: panel icon + overlay window lifecycle.
+    Root plasmoid item: panel icon + custom Window lifecycle.
+    Display modes: fullscreen overlay (0) or centered popup (1).
 */
 
 import QtQuick
-import QtQuick.Window
 import org.kde.plasma.plasmoid
 
 PlasmoidItem {
     id: kicker
 
-    // Match Kicker's dashboard pattern: icon is fullRepresentation,
-    // compactRepresentation is null, preferredRepresentation forces
-    // the fullRepresentation to be shown directly in the panel.
-    compactRepresentation: null
-    fullRepresentation: compactRepresentationComponent
-    preferredRepresentation: fullRepresentation
+    compactRepresentation: compactRepresentationComponent
+    fullRepresentation: Item {}
+    preferredRepresentation: compactRepresentation
 
-    expandedOnDragHover: false
-    hideOnWindowDeactivate: true
     activationTogglesExpanded: false
 
     Plasmoid.icon: Plasmoid.configuration.useCustomButtonImage
@@ -35,26 +30,24 @@ PlasmoidItem {
         CompactRepresentation {}
     }
 
-    // Super key / external activation
     Connections {
         target: Plasmoid
-        function onActivated() {
-            kicker.toggleWindow()
-        }
+        function onActivated() { kicker.toggleWindow() }
     }
 
-    // TODO: Test which display mode works best, may remove this setting
-    // Recreate window when display mode changes (LayerShell can't be toggled at runtime)
+    // Recreate window when display mode changes
     Connections {
         target: Plasmoid.configuration
-        function onDisplayModeChanged() {
-            if (gridWindow) {
-                gridWindow.visible = false
-                gridWindow.destroy()
-                gridWindow = null
-            }
-            gridOpen = false
+        function onDisplayModeChanged() { destroyGridWindow() }
+    }
+
+    function destroyGridWindow() {
+        if (gridWindow) {
+            gridWindow.visible = false
+            gridWindow.destroy()
+            gridWindow = null
         }
+        gridOpen = false
     }
 
     function toggleWindow() {
