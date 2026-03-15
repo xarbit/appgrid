@@ -44,6 +44,7 @@ jobs:
     name: Arch Linux
     needs: version
     runs-on: ubuntu-latest
+    # x86_64 only — no official Arch Linux ARM container
     container: archlinux:latest
     env:
       APP_VERSION: ${{ needs.version.outputs.version }}
@@ -79,38 +80,53 @@ jobs:
           path: plasma6-applets-appgrid-*.tar.gz
 
   fedora:
-    name: Fedora
+    name: Fedora (${{ matrix.arch }})
     needs: version
     runs-on: ubuntu-latest
-    container: fedora:latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64, aarch64]
+        include:
+          - arch: x86_64
+            platform: linux/amd64
+          - arch: aarch64
+            platform: linux/arm64
     env:
       APP_VERSION: ${{ needs.version.outputs.version }}
     steps:
-      - name: Install dependencies
-        run: |
-          dnf install -y \
-            cmake extra-cmake-modules gcc-c++ \
-            qt6-qtbase-devel qt6-qtdeclarative-devel \
-            libplasma-devel kf6-kpackage-devel kf6-kio-devel \
-            kf6-kservice-devel kf6-ki18n-devel kf6-kcoreaddons-devel \
-            kf6-kwindowsystem-devel layer-shell-qt-devel \
-            plasma-workspace-devel \
-            gettext rpm-build
-
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Build
-        run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX=/usr
-          cmake --build build -j$(nproc)
+      - name: Set up QEMU
+        if: matrix.arch == 'aarch64'
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
 
-      - name: Package RPM
+      - name: Build and package
         run: |
-          DESTDIR="$PWD/pkg" cmake --install build
-          FEDORA_VER=$(rpm -E %fedora)
-          PKG_DIR="$PWD/pkg"
-          cat > appgrid.spec <<SPEC
+          docker run --rm --platform ${{ matrix.platform }} \
+            -v ${{ github.workspace }}:/workspace \
+            -e APP_VERSION="${APP_VERSION}" \
+            -e BUILD_TYPE="${BUILD_TYPE}" \
+            fedora:latest bash -c '
+              set -e
+              dnf install -y \
+                cmake extra-cmake-modules gcc-c++ \
+                qt6-qtbase-devel qt6-qtdeclarative-devel \
+                libplasma-devel kf6-kpackage-devel kf6-kio-devel \
+                kf6-kservice-devel kf6-ki18n-devel kf6-kcoreaddons-devel \
+                kf6-kwindowsystem-devel layer-shell-qt-devel \
+                plasma-workspace-devel \
+                gettext rpm-build
+              cd /workspace
+              cmake -B build -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX=/usr
+              cmake --build build -j$(nproc)
+              DESTDIR="$PWD/pkg" cmake --install build
+              FEDORA_VER=$(rpm -E %fedora)
+              PKG_DIR="$PWD/pkg"
+              cat > appgrid.spec <<SPEC
           Name:           plasma-applet-appgrid
           Version:        ${APP_VERSION}
           Release:        1.fc${FEDORA_VER}
@@ -131,53 +147,69 @@ jobs:
           /usr/share/metainfo/dev.xarbit.appgrid.metainfo.xml
           /usr/share/locale/*/LC_MESSAGES/dev.xarbit.appgrid.mo
           SPEC
-          rpmbuild -bb \
-            --define "_topdir $PWD/rpmbuild" \
-            appgrid.spec
-          find rpmbuild/RPMS -name '*.rpm' -exec cp {} . \;
+              rpmbuild -bb \
+                --define "_topdir $PWD/rpmbuild" \
+                appgrid.spec
+              find rpmbuild/RPMS -name "*.rpm" -exec cp {} /workspace/ \;
+            '
 
       - name: Upload artifact
         uses: actions/upload-artifact@v5
         with:
-          name: fedora-package
+          name: fedora-package-${{ matrix.arch }}
           path: '*.rpm'
 
   opensuse-tumbleweed:
-    name: openSUSE Tumbleweed
+    name: openSUSE Tumbleweed (${{ matrix.arch }})
     needs: version
     runs-on: ubuntu-latest
-    container: opensuse/tumbleweed:latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64, aarch64]
+        include:
+          - arch: x86_64
+            platform: linux/amd64
+          - arch: aarch64
+            platform: linux/arm64
     env:
       APP_VERSION: ${{ needs.version.outputs.version }}
     steps:
-      - name: Install dependencies
-        run: |
-          zypper --non-interactive install \
-            cmake gcc-c++ \
-            kf6-extra-cmake-modules \
-            qt6-quick-devel qt6-gui-devel qt6-dbus-devel \
-            libplasma6-devel \
-            kf6-kpackage-devel kf6-kio-devel \
-            kf6-kservice-devel kf6-ki18n-devel kf6-kcoreaddons-devel \
-            kf6-kwindowsystem-devel \
-            layer-shell-qt6-devel \
-            plasma6-workspace-devel \
-            gettext-tools rpm-build
-
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Build
-        run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX=/usr
-          cmake --build build -j$(nproc)
+      - name: Set up QEMU
+        if: matrix.arch == 'aarch64'
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
 
-      - name: Package RPM
+      - name: Build and package
         run: |
-          DESTDIR="$PWD/pkg" cmake --install build
-          TW_SNAPSHOT=$(grep -oP 'VERSION_ID="\K[^"]+' /etc/os-release)
-          PKG_DIR="$PWD/pkg"
-          cat > appgrid.spec <<SPEC
+          docker run --rm --platform ${{ matrix.platform }} \
+            -v ${{ github.workspace }}:/workspace \
+            -e APP_VERSION="${APP_VERSION}" \
+            -e BUILD_TYPE="${BUILD_TYPE}" \
+            opensuse/tumbleweed:latest bash -c '
+              set -e
+              zypper --non-interactive install \
+                cmake gcc-c++ \
+                kf6-extra-cmake-modules \
+                qt6-quick-devel qt6-gui-devel qt6-dbus-devel \
+                libplasma6-devel \
+                kf6-kpackage-devel kf6-kio-devel \
+                kf6-kservice-devel kf6-ki18n-devel kf6-kcoreaddons-devel \
+                kf6-kwindowsystem-devel \
+                layer-shell-qt6-devel \
+                plasma6-workspace-devel \
+                gettext-tools rpm-build
+              cd /workspace
+              cmake -B build -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX=/usr
+              cmake --build build -j$(nproc)
+              DESTDIR="$PWD/pkg" cmake --install build
+              TW_SNAPSHOT=$(grep -oP "VERSION_ID=\"\K[^\"]+" /etc/os-release)
+              PKG_DIR="$PWD/pkg"
+              cat > appgrid.spec <<SPEC
           Name:           plasma6-applet-appgrid
           Version:        ${APP_VERSION}
           Release:        1.opensuse.tw${TW_SNAPSHOT}
@@ -198,60 +230,86 @@ jobs:
           /usr/share/metainfo/dev.xarbit.appgrid.metainfo.xml
           /usr/share/locale/*/LC_MESSAGES/dev.xarbit.appgrid.mo
           SPEC
-          rpmbuild -bb \
-            --define "_topdir $PWD/rpmbuild" \
-            appgrid.spec
-          find rpmbuild/RPMS -name '*.rpm' -exec cp {} . \;
+              rpmbuild -bb \
+                --define "_topdir $PWD/rpmbuild" \
+                appgrid.spec
+              find rpmbuild/RPMS -name "*.rpm" -exec cp {} /workspace/ \;
+            '
 
       - name: Upload artifact
         uses: actions/upload-artifact@v5
         with:
-          name: opensuse-tumbleweed-package
+          name: opensuse-tumbleweed-package-${{ matrix.arch }}
           path: '*.rpm'
 
-  ubuntu:
-    name: Ubuntu 25.04
+  deb-packages:
+    name: ${{ matrix.distro.name }} (${{ matrix.arch.name }})
     needs: version
     runs-on: ubuntu-latest
-    container: ubuntu:plucky
+    strategy:
+      fail-fast: false
+      matrix:
+        distro:
+          - {name: "Ubuntu 25.04", image: "ubuntu:25.04", id: "ubuntu-25.04"}
+          - {name: "Ubuntu 25.10", image: "ubuntu:25.10", id: "ubuntu-25.10"}
+          - {name: "Ubuntu 26.04", image: "ubuntu:26.04", id: "ubuntu-26.04"}
+          - {name: "Debian 13", image: "debian:13", id: "debian-13"}
+        arch:
+          - {name: "x86_64", platform: "linux/amd64", deb: "amd64"}
+          - {name: "aarch64", platform: "linux/arm64", deb: "arm64"}
     env:
       APP_VERSION: ${{ needs.version.outputs.version }}
     steps:
-      - name: Install dependencies
-        env:
-          DEBIAN_FRONTEND: noninteractive
-        run: |
-          apt-get update
-          apt-get install -y \
-            cmake extra-cmake-modules g++ \
-            qt6-base-dev qt6-declarative-dev \
-            libplasma-dev libkf6package-dev libkf6kio-dev \
-            libkf6service-dev libkf6i18n-dev libkf6coreaddons-dev \
-            libkf6windowsystem-dev \
-            liblayershellqtinterface-dev \
-            plasma-workspace-dev \
-            gettext dpkg-dev
-
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Build
-        run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX=/usr
-          cmake --build build -j$(nproc)
+      - name: Set up QEMU
+        if: matrix.arch.name == 'aarch64'
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
 
-      - name: Package DEB
+      - name: Build and package
+        env:
+          DEB_ARCH: ${{ matrix.arch.deb }}
         run: |
-          DESTDIR="$PWD/pkg" cmake --install build
-          mkdir -p pkg/DEBIAN
-          UBUNTU_VER=$(grep -oP 'VERSION_ID="\K[^"]+' /etc/os-release)
-          UBUNTU_CODENAME=$(grep -oP 'VERSION_CODENAME=\K.*' /etc/os-release)
-          cat > pkg/DEBIAN/control <<EOF
+          docker run --rm --platform ${{ matrix.arch.platform }} \
+            -v ${{ github.workspace }}:/workspace \
+            -e APP_VERSION="${APP_VERSION}" \
+            -e BUILD_TYPE="${BUILD_TYPE}" \
+            -e DEB_ARCH="${DEB_ARCH}" \
+            -e DEBIAN_FRONTEND=noninteractive \
+            ${{ matrix.distro.image }} bash -c '
+              set -e
+              apt-get update
+              apt-get install -y \
+                cmake extra-cmake-modules g++ \
+                qt6-base-dev qt6-declarative-dev \
+                libplasma-dev libkf6package-dev libkf6kio-dev \
+                libkf6service-dev libkf6i18n-dev libkf6coreaddons-dev \
+                libkf6windowsystem-dev \
+                liblayershellqtinterface-dev \
+                plasma-workspace-dev \
+                gettext dpkg-dev
+              cd /workspace
+              cmake -B build -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX=/usr
+              cmake --build build -j$(nproc)
+              DESTDIR="$PWD/pkg" cmake --install build
+              mkdir -p pkg/DEBIAN
+              DISTRO_ID=$(grep -oP "^ID=\K\w+" /etc/os-release)
+              VER_ID=$(grep -oP "VERSION_ID=\"\K[^\"]+" /etc/os-release)
+              CODENAME=$(grep -oP "VERSION_CODENAME=\K.*" /etc/os-release)
+              if [ "$DISTRO_ID" = "ubuntu" ]; then
+                PKG_SUFFIX="${APP_VERSION}-1ubuntu${VER_ID}"
+              else
+                PKG_SUFFIX="${APP_VERSION}-1${DISTRO_ID}${VER_ID}"
+              fi
+              cat > pkg/DEBIAN/control <<EOF
           Package: plasma-applet-appgrid
-          Version: ${APP_VERSION}-1ubuntu${UBUNTU_VER}
+          Version: ${PKG_SUFFIX}
           Section: kde
           Priority: optional
-          Architecture: amd64
+          Architecture: ${DEB_ARCH}
           Depends: plasma-workspace, libkf6service6, libkf6i18n6
           Maintainer: Jason Scurtu <jscurtu@gmail.com>
           Description: A modern fullscreen application launcher for KDE Plasma
@@ -259,18 +317,19 @@ jobs:
            inspired by macOS Launchpad and COSMIC.
           Homepage: https://github.com/xarbit/appgrid
           EOF
-          dpkg-deb --build pkg \
-            "plasma-applet-appgrid_${APP_VERSION}-1ubuntu${UBUNTU_VER}_${UBUNTU_CODENAME}_amd64.deb"
+              dpkg-deb --build pkg \
+                "/workspace/plasma-applet-appgrid_${PKG_SUFFIX}_${CODENAME}_${DEB_ARCH}.deb"
+            '
 
       - name: Upload artifact
         uses: actions/upload-artifact@v5
         with:
-          name: ubuntu-package
+          name: ${{ matrix.distro.id }}-package-${{ matrix.arch.deb }}
           path: '*.deb'
 
   release:
     name: Create Release
-    needs: [version, arch, fedora, opensuse-tumbleweed, ubuntu]
+    needs: [version, arch, fedora, opensuse-tumbleweed, deb-packages]
     runs-on: ubuntu-latest
     if: needs.version.outputs.is_release == 'true'
     steps:
