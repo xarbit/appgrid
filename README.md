@@ -116,7 +116,7 @@ Right-click the AppGrid panel icon → **Configure AppGrid** → **General**.
 | Setting | Description | Default |
 |---------|-------------|---------|
 | **Icon** | Panel icon or custom image | `start-here-kde-symbolic` |
-| **Display mode** | **Fullscreen overlay** covers the entire screen with a blurred background, similar to macOS Launchpad. **Centered popup** opens a floating window in the center of the screen that dismisses when clicking outside or losing focus. *This setting is temporary for testing both implementations — one will be chosen as the default in a future release.* | Centered popup |
+| **Display mode** | **Fullscreen overlay** covers the entire screen with a blurred background, similar to macOS Launchpad. **Centered popup** opens a floating window in the center of the screen. **Near panel icon** opens a popup anchored to the panel icon, like Kickoff. | Centered popup |
 | **Icons per row** | Number of columns in the grid | 7 |
 | **Visible rows** | Number of rows visible before scrolling | 4 |
 | **Icon size** | Small, medium, or large | Large |

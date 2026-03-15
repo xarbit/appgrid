@@ -146,7 +146,6 @@ KCMUtils.SimpleKCM {
 
         Item { Kirigami.FormData.isSection: true }
 
-        // TODO: Test which display mode works best, may remove this setting
         QQC2.ComboBox {
             id: displayMode
             Kirigami.FormData.label: i18n("Display mode:")

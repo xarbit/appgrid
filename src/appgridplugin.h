@@ -46,8 +46,6 @@ public:
     Q_INVOKABLE void logOut();
     Q_INVOKABLE void switchUser();
 
-    // --- Desktop integration ---
-
     // --- Prefix mode commands ---
 
     /** Run @p command in the user's preferred terminal emulator. */
@@ -72,6 +70,9 @@ public:
 
     /** Add an application shortcut to the desktop by its @p desktopFile path. */
     Q_INVOKABLE void addToDesktop(const QString &desktopFile);
+
+protected:
+    bool m_useNativeActivation = false;
 
 private:
     AppModel m_appModel;

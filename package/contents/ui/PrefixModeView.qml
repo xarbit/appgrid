@@ -18,7 +18,6 @@ Item {
     property string argument: ""   // text after the prefix
     property Item searchField: null
 
-    signal commandExecuted()
     signal fileOpened()
     signal directoryNavigated(string path)
 

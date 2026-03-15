@@ -18,15 +18,10 @@ PlasmaComponents.Menu {
     property string popupStorageId: ""
     property string popupDesktopFile: ""
 
-    property bool popupIsFavorite: false
-
-    signal appHidden()
-
     function showForApp(index, storageId, desktopFile) {
         popupIndex = index
         popupStorageId = storageId
         popupDesktopFile = desktopFile
-        popupIsFavorite = appsModel ? appsModel.isFavorite(storageId) : false
         popup()
     }
 
@@ -54,19 +49,6 @@ PlasmaComponents.Menu {
         Accessible.role: Accessible.MenuItem
     }
 
-    // PlasmaComponents.MenuItem {
-    //     icon.name: contextMenu.popupIsFavorite ? "bookmark-remove" : "bookmark-new"
-    //     text: contextMenu.popupIsFavorite ? i18n("Remove from Favorites") : i18n("Add to Favorites")
-    //     onClicked: {
-    //         if (contextMenu.appsModel) {
-    //             contextMenu.appsModel.toggleFavorite(contextMenu.popupStorageId)
-    //             Plasmoid.configuration.favoriteApps = contextMenu.appsModel.favoriteApps
-    //         }
-    //     }
-    //     Accessible.name: text
-    //     Accessible.role: Accessible.MenuItem
-    // }
-
     PlasmaComponents.MenuSeparator {}
 
     PlasmaComponents.MenuItem {
@@ -76,7 +58,6 @@ PlasmaComponents.Menu {
             if (contextMenu.appsModel) {
                 contextMenu.appsModel.hideApp(contextMenu.popupIndex)
                 Plasmoid.configuration.hiddenApps = contextMenu.appsModel.hiddenApps
-                contextMenu.appHidden()
             }
         }
         Accessible.name: i18n("Hide Application")

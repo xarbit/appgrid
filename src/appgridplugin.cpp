@@ -19,11 +19,10 @@
 #include <QProcess>
 #include <QQuickWindow>
 #include <QStandardPaths>
+#include <QTimer>
 #include <QUrl>
 #include <QWindow>
 #include <sessionmanagement.h>
-
-K_PLUGIN_CLASS_WITH_JSON(AppGridPlugin, "metadata.json")
 
 // Known task manager plugin IDs, matching the list used by Kicker.
 static constexpr QLatin1StringView s_knownTaskManagers[] = {
@@ -38,6 +37,21 @@ AppGridPlugin::AppGridPlugin(QObject *parent, const KPluginMetaData &data, const
 {
     m_filterModel.setSourceModel(&m_appModel);
     QQuickWindow::setDefaultAlphaBuffer(true);
+
+    // PlasmoidItem::init() connects activated → setExpanded(true).
+    // For custom Window mode, we add a second connection (fires after PlasmoidItem's)
+    // that immediately reverses the expansion, preventing the native popup from showing.
+    // The popup variant (AppGridPopupPlugin) sets m_useNativeActivation = true to skip this.
+    QTimer::singleShot(0, this, [this]() {
+        if (!m_useNativeActivation) {
+            auto *quickItem = PlasmaQuick::AppletQuickItem::itemForApplet(this);
+            if (quickItem) {
+                connect(this, &Plasma::Applet::activated, this, [quickItem]() {
+                    quickItem->setProperty("expanded", false);
+                });
+            }
+        }
+    });
 }
 
 AppFilterModel *AppGridPlugin::appsModel()
@@ -276,5 +290,3 @@ void AppGridPlugin::addToDesktop(const QString &desktopFile)
                               QVariantList() << QUrl::fromLocalFile(absPath));
     }
 }
-
-#include "appgridplugin.moc"

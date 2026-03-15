@@ -20,17 +20,7 @@ find_package(LibKWorkspace REQUIRED)
 find_package(Plasma REQUIRED)
 find_package(PlasmaQuick REQUIRED)
 
-# --- Plasma applet C++ plugin ---
-add_library(dev.xarbit.appgrid SHARED
-    src/appgridplugin.cpp
-    src/appgridplugin.h
-    src/appmodel.cpp
-    src/appmodel.h
-)
-
-set_target_properties(dev.xarbit.appgrid PROPERTIES PREFIX "")
-
-target_link_libraries(dev.xarbit.appgrid PRIVATE
+set(APPGRID_COMMON_LIBS
     Qt6::Quick
     Qt6::Gui
     Qt6::DBus
@@ -45,17 +35,72 @@ target_link_libraries(dev.xarbit.appgrid PRIVATE
     Plasma::PlasmaQuick
 )
 
-# Copy metadata.json next to source for K_PLUGIN_CLASS_WITH_JSON
+# QML components shared between both plasmoids
+set(SHARED_QML_FILES
+    AppContextMenu.qml
+    AppGridView.qml
+    AppIconDelegate.qml
+    CategoryBar.qml
+    GridPanel.qml
+    PowerButtons.qml
+    PrefixModeView.qml
+    SearchBar.qml
+    SearchResultsList.qml
+)
+
+# --- Main plasmoid (custom Window: fullscreen/centered) ---
+
+add_library(dev.xarbit.appgrid SHARED
+    src/appgridplugin_register.cpp
+    src/appgridplugin.cpp
+    src/appgridplugin.h
+    src/appmodel.cpp
+    src/appmodel.h
+)
+set_target_properties(dev.xarbit.appgrid PROPERTIES PREFIX "")
+target_link_libraries(dev.xarbit.appgrid PRIVATE ${APPGRID_COMMON_LIBS})
+
 configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/package/metadata.json
     ${CMAKE_CURRENT_SOURCE_DIR}/src/metadata.json
     COPYONLY
 )
 
-# --- Install ---
 install(TARGETS dev.xarbit.appgrid DESTINATION ${KDE_INSTALL_PLUGINDIR}/plasma/applets)
-
 plasma_install_package(package dev.xarbit.appgrid)
+
+# --- Panel plasmoid (native Plasma popup near panel icon) ---
+
+add_library(dev.xarbit.appgrid.panel SHARED
+    src/appgridpanelplugin.cpp
+    src/appgridpanelplugin.h
+    src/appgridplugin.cpp
+    src/appgridplugin.h
+    src/appmodel.cpp
+    src/appmodel.h
+)
+set_target_properties(dev.xarbit.appgrid.panel PROPERTIES PREFIX "")
+target_link_libraries(dev.xarbit.appgrid.panel PRIVATE ${APPGRID_COMMON_LIBS})
+
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/package-panel/metadata.json
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/metadata-panel.json
+    COPYONLY
+)
+
+# Copy shared QML components into the popup package at build time
+foreach(qml_file ${SHARED_QML_FILES})
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/package/contents/ui/${qml_file}
+        ${CMAKE_CURRENT_SOURCE_DIR}/package-panel/contents/ui/${qml_file}
+        COPYONLY
+    )
+endforeach()
+
+install(TARGETS dev.xarbit.appgrid.panel DESTINATION ${KDE_INSTALL_PLUGINDIR}/plasma/applets)
+plasma_install_package(package-panel dev.xarbit.appgrid.panel)
+
+# --- Common ---
 
 ki18n_install(po)
 

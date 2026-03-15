@@ -81,8 +81,6 @@ Item {
             }
         }
 
-        onClicked: {
-            kicker.toggleWindow()
-        }
+        onClicked: kicker.toggleWindow()
     }
 }
