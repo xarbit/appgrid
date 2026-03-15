@@ -68,16 +68,21 @@ Kirigami.ShadowedRectangle {
     // -- Panel sizing --
     // Always use icon-based cell estimates to avoid circular dependency
     // (panel width → grid cellWidth → grid width → panel width).
-    readonly property real panelWidth: estCellWidth * columns + Kirigami.Units.largeSpacing * 4
-    readonly property real panelHeight: estCellHeight * rows + Kirigami.Units.largeSpacing * 4 + Kirigami.Units.gridUnit * 5
+    readonly property real panelMargin: nativePopup ? Kirigami.Units.largeSpacing : Kirigami.Units.largeSpacing * 2
+    readonly property real headerHeight: Kirigami.Units.gridUnit * 5
+    readonly property real panelWidth: estCellWidth * columns + panelMargin * 2
+    readonly property real panelHeight: estCellHeight * rows + panelMargin * 2 + headerHeight
 
-    width: Math.min(panelWidth, Screen.width * 0.9)
-    height: Math.min(panelHeight, Screen.height * 0.9)
+    readonly property real minWidth: nativePopup ? Kirigami.Units.gridUnit * 28 : 0
+    readonly property real minHeight: nativePopup ? Kirigami.Units.gridUnit * 24 : 0
+
+    width: Math.max(minWidth, Math.min(panelWidth, Screen.width * 0.9))
+    height: Math.max(minHeight, Math.min(panelHeight, Screen.height * 0.9))
 
     Layout.preferredWidth: width
     Layout.preferredHeight: height
-    Layout.minimumWidth: width
-    Layout.minimumHeight: height
+    Layout.minimumWidth: nativePopup ? minWidth : width
+    Layout.minimumHeight: nativePopup ? minHeight : height
     radius: nativePopup ? 0
             : (Plasmoid.configuration.overrideRadius
                ? Plasmoid.configuration.cornerRadius
@@ -199,7 +204,7 @@ Kirigami.ShadowedRectangle {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: Kirigami.Units.largeSpacing * 2
+        anchors.margins: panel.panelMargin
         spacing: Kirigami.Units.largeSpacing
 
         // -- Header --
