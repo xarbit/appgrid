@@ -9,7 +9,7 @@ XGETTEXT_FLAGS="--from-code=UTF-8 -kde -ci18n -ki18n:1 -ki18nc:1c,2 -ki18np:1,2 
     -kaliasLocale -kki18n:1 -kki18nc:1c,2 -kki18np:1,2 -kki18ncp:1c,2,3"
 
 PODIR="${podir:-po}"
-BUGADDR="https://github.com/xarbit/appgrid/issues"
+BUGADDR="https://github.com/xarbit/plasma6-applet-appgrid/issues"
 
 # QML files
 find package/contents/ui -name '*.qml' | sort > "${PODIR}/qmlfiles.list"

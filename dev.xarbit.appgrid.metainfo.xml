@@ -32,8 +32,8 @@
         </ul>
     </description>
 
-    <url type="homepage">https://github.com/xarbit/appgrid</url>
-    <url type="bugtracker">https://github.com/xarbit/appgrid/issues</url>
+    <url type="homepage">https://github.com/xarbit/plasma6-applet-appgrid</url>
+    <url type="bugtracker">https://github.com/xarbit/plasma6-applet-appgrid/issues</url>
 
     <developer id="dev.xarbit">
         <name>Jason Scurtu</name>
