@@ -49,9 +49,25 @@ KDE Plasma ships with Kickoff and Kicker as its default application launchers. W
 - kpackage
 - kio
 
-## Building
+## Installation
 
-### Arch Linux (recommended)
+### Arch Linux (AUR)
+
+```bash
+yay -S plasma6-applets-appgrid
+```
+
+Or with any other AUR helper, or manually:
+
+```bash
+git clone https://aur.archlinux.org/plasma6-applets-appgrid.git
+cd plasma6-applets-appgrid
+makepkg -si
+```
+
+## Building from source
+
+### Arch Linux
 
 ```bash
 makepkg -si
