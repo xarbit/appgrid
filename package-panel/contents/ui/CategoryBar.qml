@@ -112,6 +112,8 @@ RowLayout {
 
     // -- Category action helpers --
 
+    function closeCategoryMenu() { catContextMenu.close() }
+
     function selectAll() {
         if (categoryBar.favoritesActive)
             categoryBar.favoritesToggled(false)

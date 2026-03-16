@@ -169,6 +169,7 @@ Kirigami.ShadowedRectangle {
     // -- Reset state (called when showing the grid) --
     function resetState() {
         contextMenu.close()
+        categoryBar.closeCategoryMenu()
         searchBar.text = ""
         var startFav = Plasmoid.configuration.startWithFavorites || false
         categoryBar.favoritesActive = startFav
