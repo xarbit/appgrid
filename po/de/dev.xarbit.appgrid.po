@@ -9,7 +9,7 @@ msgstr ""
 "issues\n"
 "POT-Creation-Date: 2026-03-16 17:14+0100\n"
 "PO-Revision-Date: 2026-03-14 00:00+0000\n"
-"Last-Translator: \n"
+"Last-Translator: DeN-AlB\n"
 "Language-Team: German\n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
@@ -283,7 +283,7 @@ msgstr "Favoriten neu anordnen"
 
 #: package/contents/ui/PowerButtons.qml:25
 msgid "Sleep"
-msgstr "Ruhezustand"
+msgstr "Schlafmodus"
 
 #: package/contents/ui/PowerButtons.qml:26
 msgid "Restart"
