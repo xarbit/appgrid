@@ -14,8 +14,9 @@ src/metadata.json
 *.pkg.tar.zst
 *.pkg.tar.xz
 
-# Translation backups
+# Translation artifacts
 *.po~
+*.mo
 
 # Screenshots
 Screenshot_*.png
