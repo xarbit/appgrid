@@ -49,6 +49,7 @@ Item {
     }
 
     ColumnLayout {
+        id: contentLayout
         anchors.fill: parent
         anchors.margins: Kirigami.Units.smallSpacing
         spacing: Kirigami.Units.smallSpacing
@@ -149,15 +150,15 @@ Item {
         Accessible.focusable: true
     }
 
-    // Wiggle animation for edit mode
+    // Wiggle animation for edit mode — animates entire delegate content
     SequentialAnimation {
         id: wiggleAnim
         loops: Animation.Infinite
         running: root.editMode
-        NumberAnimation { target: delegateIcon; property: "rotation"; from: -2; to: 2; duration: 150; easing.type: Easing.InOutQuad }
-        NumberAnimation { target: delegateIcon; property: "rotation"; from: 2; to: -2; duration: 150; easing.type: Easing.InOutQuad }
+        NumberAnimation { target: contentLayout; property: "rotation"; from: -2; to: 2; duration: 150; easing.type: Easing.InOutQuad }
+        NumberAnimation { target: contentLayout; property: "rotation"; from: 2; to: -2; duration: 150; easing.type: Easing.InOutQuad }
         onRunningChanged: {
-            if (!running) delegateIcon.rotation = 0
+            if (!running) contentLayout.rotation = 0
         }
     }
 

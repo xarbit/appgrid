@@ -534,36 +534,25 @@ Kirigami.ShadowedRectangle {
             }
 
             // Edit mode button — visible only in favorites tab
-            Rectangle {
+            PlasmaComponents.ToolButton {
                 id: editModeBtn
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
                 anchors.margins: Kirigami.Units.smallSpacing
                 z: 20
                 visible: categoryBar.favoritesActive
-                width: editBtn.implicitWidth + Kirigami.Units.smallSpacing * 2
-                height: editBtn.implicitHeight + Kirigami.Units.smallSpacing * 2
-                radius: Kirigami.Units.cornerRadius
-                color: Qt.rgba(Kirigami.Theme.backgroundColor.r,
-                               Kirigami.Theme.backgroundColor.g,
-                               Kirigami.Theme.backgroundColor.b, 0.9)
-
-                PlasmaComponents.ToolButton {
-                    id: editBtn
-                    anchors.centerIn: parent
-                    icon.name: appGrid.editMode ? "dialog-ok-apply" : "document-edit"
-                    checked: appGrid.editMode
-                    onClicked: {
-                        appGrid.editMode = !appGrid.editMode
-                        appGrid.selectedSwapIndex = -1
-                        if (!appGrid.editMode)
-                            appGrid.favoritesOrderChanged()
-                    }
-
-                    PlasmaComponents.ToolTip.text: appGrid.editMode ? i18n("Done") : i18n("Reorder favorites")
-                    PlasmaComponents.ToolTip.visible: hovered
-                    PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
+                icon.name: appGrid.editMode ? "dialog-ok-apply" : "document-edit"
+                checked: appGrid.editMode
+                onClicked: {
+                    appGrid.editMode = !appGrid.editMode
+                    appGrid.selectedSwapIndex = -1
+                    if (!appGrid.editMode)
+                        appGrid.favoritesOrderChanged()
                 }
+
+                PlasmaComponents.ToolTip.text: appGrid.editMode ? i18n("Done") : i18n("Reorder favorites")
+                PlasmaComponents.ToolTip.visible: hovered
+                PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
             }
 
         }

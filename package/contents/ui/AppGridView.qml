@@ -108,6 +108,22 @@ GridView {
     // Index of currently selected item for swap (-1 = none)
     property int selectedSwapIndex: -1
 
+    // Auto-exit edit mode after inactivity
+    Timer {
+        id: editTimeout
+        interval: 10000
+        running: gridView.editMode
+        onTriggered: {
+            gridView.editMode = false
+            gridView.selectedSwapIndex = -1
+            gridView.favoritesOrderChanged()
+        }
+    }
+
+    onSelectedSwapIndexChanged: {
+        if (editMode) editTimeout.restart()
+    }
+
     clip: true
     cacheBuffer: Kirigami.Units.gridUnit * 4
     cellWidth: Math.floor(width / columns)
