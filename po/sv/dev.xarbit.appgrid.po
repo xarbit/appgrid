@@ -5,8 +5,9 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: dev.xarbit.appgrid 1.0\n"
-"Report-Msgid-Bugs-To: https://github.com/xarbit/plasma6-applet-appgrid/issues\n"
-"POT-Creation-Date: 2026-03-14 20:43+0100\n"
+"Report-Msgid-Bugs-To: https://github.com/xarbit/plasma6-applet-appgrid/"
+"issues\n"
+"POT-Creation-Date: 2026-03-16 13:09+0100\n"
 "PO-Revision-Date: 2026-03-14 00:00+0000\n"
 "Last-Translator: \n"
 "Language-Team: Swedish\n"
@@ -16,157 +17,230 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: package/contents/ui/AppContextMenu.qml:35
-#: package/contents/ui/AppContextMenu.qml:37
-msgid "Pin to Task Manager"
-msgstr "Fäst i aktivitetshanteraren"
-
-#: package/contents/ui/AppContextMenu.qml:43
-#: package/contents/ui/AppContextMenu.qml:45
-msgid "Add to Desktop"
-msgstr "Lägg till på skrivbordet"
-
-#: package/contents/ui/AppContextMenu.qml:51
-#: package/contents/ui/AppContextMenu.qml:53
-msgid "Edit Application"
-msgstr "Redigera program"
-
-#: package/contents/ui/AppContextMenu.qml:59
+#: package/contents/ui/AppContextMenu.qml:32
 msgid "Remove from Favorites"
 msgstr "Ta bort från favoriter"
 
-#: package/contents/ui/AppContextMenu.qml:59
+#: package/contents/ui/AppContextMenu.qml:32
 msgid "Add to Favorites"
 msgstr "Lägg till i favoriter"
 
-#: package/contents/ui/AppContextMenu.qml:74
-#: package/contents/ui/AppContextMenu.qml:82
+#: package/contents/ui/AppContextMenu.qml:47
+#: package/contents/ui/AppContextMenu.qml:49
+msgid "Pin to Task Manager"
+msgstr "Fäst i aktivitetshanteraren"
+
+#: package/contents/ui/AppContextMenu.qml:55
+#: package/contents/ui/AppContextMenu.qml:57
+msgid "Add to Desktop"
+msgstr "Lägg till på skrivbordet"
+
+#: package/contents/ui/AppContextMenu.qml:63
+#: package/contents/ui/AppContextMenu.qml:65
+msgid "Edit Application"
+msgstr "Redigera program"
+
+#: package/contents/ui/AppContextMenu.qml:73
+#: package/contents/ui/AppContextMenu.qml:80
 msgid "Hide Application"
 msgstr "Dölj program"
 
-#: package/contents/ui/AppGridView.qml:148
-msgid "Recently Used"
-msgstr "Senast använda"
-
-#: package/contents/ui/AppGridView.qml:210
-msgid "All Apps"
-msgstr "Alla program"
-
-#: package/contents/ui/AppIconDelegate.qml:82
+#: package/contents/ui/AppIconDelegate.qml:100
 msgid "new"
 msgstr "ny"
 
-#: package/contents/ui/CategoryBar.qml:23
+#: package/contents/ui/CategoryBar.qml:58
+#: package/contents/ui/CategoryBar.qml:194
 msgid "All"
 msgstr "Alla"
 
-#: package/contents/ui/CategoryBar.qml:28
+#: package/contents/ui/CategoryBar.qml:62
+#: package/contents/ui/CategoryBar.qml:183
+#: package/contents/ui/CategoryBar.qml:187
+#: package/contents/ui/CategoryBar.qml:303
+#: package/contents/ui/CategoryBar.qml:307
+msgid "Favorites"
+msgstr ""
+
+#: package/contents/ui/CategoryBar.qml:203
 msgid "All applications"
 msgstr "Alla program"
 
-#: package/contents/ui/ConfigGeneral.qml:67
+#: package/contents/ui/CategoryBar.qml:217
+msgid "Scroll categories left"
+msgstr ""
+
+#: package/contents/ui/CategoryBar.qml:291
+msgid "Scroll categories right"
+msgstr ""
+
+#: package/contents/ui/CategoryBar.qml:318
+msgid "Edit \"%1\" in Menu Editor…"
+msgstr ""
+
+#: package/contents/ui/CategoryBar.qml:326
+msgid "Open Menu Editor…"
+msgstr ""
+
+#: package/contents/ui/ConfigGeneral.qml:73
 msgid "Icon:"
 msgstr "Ikon:"
 
-#: package/contents/ui/ConfigGeneral.qml:128
+#: package/contents/ui/ConfigGeneral.qml:134
 msgctxt "@item:inmenu Open icon chooser dialog"
 msgid "Choose…"
 msgstr "Välj…"
 
-#: package/contents/ui/ConfigGeneral.qml:133
+#: package/contents/ui/ConfigGeneral.qml:139
 msgctxt "@item:inmenu Reset icon to default"
 msgid "Clear Icon"
 msgstr "Rensa ikon"
 
-#: package/contents/ui/ConfigGeneral.qml:150
+#: package/contents/ui/ConfigGeneral.qml:156
 msgid "Icons per row:"
 msgstr "Ikoner per rad:"
 
-#: package/contents/ui/ConfigGeneral.qml:156
+#: package/contents/ui/ConfigGeneral.qml:162
 msgid "Visible rows:"
 msgstr "Synliga rader:"
 
-#: package/contents/ui/ConfigGeneral.qml:162
+#: package/contents/ui/ConfigGeneral.qml:168
 msgid "Icon size:"
 msgstr "Ikonstorlek:"
 
-#: package/contents/ui/ConfigGeneral.qml:163
+#: package/contents/ui/ConfigGeneral.qml:169
 msgid "Small"
 msgstr "Liten"
 
-#: package/contents/ui/ConfigGeneral.qml:163
+#: package/contents/ui/ConfigGeneral.qml:169
 msgid "Medium"
 msgstr "Medel"
 
-#: package/contents/ui/ConfigGeneral.qml:163
+#: package/contents/ui/ConfigGeneral.qml:169
 msgid "Large"
 msgstr "Stor"
 
-#: package/contents/ui/ConfigGeneral.qml:167
+#: package/contents/ui/ConfigGeneral.qml:173
 msgid "Sort order:"
 msgstr "Sorteringsordning:"
 
-#: package/contents/ui/ConfigGeneral.qml:172
+#: package/contents/ui/ConfigGeneral.qml:178
 msgid "Alphabetical"
 msgstr "Alfabetisk"
 
-#: package/contents/ui/ConfigGeneral.qml:172
+#: package/contents/ui/ConfigGeneral.qml:178
 msgid "Most Used"
 msgstr "Mest använda"
 
-#: package/contents/ui/ConfigGeneral.qml:177
+#: package/contents/ui/ConfigGeneral.qml:183
 msgid "Show recently used applications"
 msgstr "Visa senast använda program"
 
-#: package/contents/ui/ConfigGeneral.qml:188
+#: package/contents/ui/ConfigGeneral.qml:194
+msgid "Behavior:"
+msgstr ""
+
+#: package/contents/ui/ConfigGeneral.qml:195
+msgid "Search all apps regardless of active tab"
+msgstr ""
+
+#: package/contents/ui/ConfigGeneral.qml:200
+msgid "Start with favorites tab"
+msgstr ""
+
+#: package/contents/ui/ConfigGeneral.qml:205
+msgid "Use system categories (supports KDE Menu Editor)"
+msgstr ""
+
+#: package/contents/ui/ConfigGeneral.qml:210
+msgid "Terminal shell:"
+msgstr ""
+
+#: package/contents/ui/ConfigGeneral.qml:214
+msgid "Default (/bin/sh)"
+msgstr ""
+
+#: package/contents/ui/ConfigGeneral.qml:234
 msgid "Appearance:"
 msgstr "Utseende:"
 
-#: package/contents/ui/ConfigGeneral.qml:189
+#: package/contents/ui/ConfigGeneral.qml:235
 msgid "Show scrollbars"
 msgstr "Visa rullningslister"
 
-#: package/contents/ui/ConfigGeneral.qml:194
+#: package/contents/ui/ConfigGeneral.qml:240
 msgid "Enable background blur"
 msgstr "Aktivera bakgrundsoskärpa"
 
-#: package/contents/ui/ConfigGeneral.qml:199
-msgid "Shake icons on open"
-msgstr "Skaka ikoner vid öppning"
+#: package/contents/ui/ConfigGeneral.qml:245
+msgid "Icon animation:"
+msgstr ""
 
-#: package/contents/ui/ConfigGeneral.qml:204
+#: package/contents/ui/ConfigGeneral.qml:246
+msgid "None"
+msgstr ""
+
+#: package/contents/ui/ConfigGeneral.qml:246
+msgid "Shake"
+msgstr ""
+
+#: package/contents/ui/ConfigGeneral.qml:246
+msgid "Grow"
+msgstr ""
+
+#: package/contents/ui/ConfigGeneral.qml:246
+msgid "Bounce"
+msgstr ""
+
+#: package/contents/ui/ConfigGeneral.qml:246
+msgid "Spin"
+msgstr ""
+
+#: package/contents/ui/ConfigGeneral.qml:246
+msgid "Shuffle"
+msgstr ""
+
+#: package/contents/ui/ConfigGeneral.qml:251
+msgid "Animate icons on open"
+msgstr ""
+
+#: package/contents/ui/ConfigGeneral.qml:257
 msgid "Show labels on power/session buttons"
 msgstr "Visa etiketter på ström-/sessionsknappar"
 
-#: package/contents/ui/ConfigGeneral.qml:209
+#: package/contents/ui/ConfigGeneral.qml:262
 msgid "Expand search to bookmarks, files, and websites"
 msgstr "Utöka sökning till bokmärken, filer och webbplatser"
 
-#: package/contents/ui/ConfigGeneral.qml:213
+#: package/contents/ui/ConfigGeneral.qml:266
 msgid "Configure Search Plugins…"
 msgstr "Konfigurera sökinsticksprogram…"
 
-#: package/contents/ui/ConfigGeneral.qml:220
+#: package/contents/ui/ConfigGeneral.qml:273
 msgid "Background opacity:"
 msgstr "Bakgrundsopacitet:"
 
-#: package/contents/ui/ConfigGeneral.qml:236
+#: package/contents/ui/ConfigGeneral.qml:289
 msgid "Corner radius:"
 msgstr "Hörnradie:"
 
-#: package/contents/ui/ConfigGeneral.qml:237
+#: package/contents/ui/ConfigGeneral.qml:290
 msgid "Use custom corner radius"
 msgstr "Använd anpassad hörnradie"
 
-#: package/contents/ui/ConfigGeneral.qml:249
+#: package/contents/ui/ConfigGeneral.qml:302
 msgid "px"
 msgstr "px"
 
-#: package/contents/ui/ConfigGeneral.qml:258
+#: package/contents/ui/ConfigGeneral.qml:314
+msgid "Reset to Defaults"
+msgstr ""
+
+#: package/contents/ui/ConfigGeneral.qml:346
 msgid "Hidden Applications"
 msgstr "Dolda program"
 
-#: package/contents/ui/ConfigGeneral.qml:265
+#: package/contents/ui/ConfigGeneral.qml:353
 msgid ""
 "Right-click any application in the grid and choose \"Hide Application\" to "
 "add it here."
@@ -174,15 +248,15 @@ msgstr ""
 "Högerklicka på ett program i rutnätet och välj \"Dölj program\" för att "
 "lägga till det här."
 
-#: package/contents/ui/ConfigGeneral.qml:273
+#: package/contents/ui/ConfigGeneral.qml:361
 msgid "No hidden applications."
 msgstr "Inga dolda program."
 
-#: package/contents/ui/ConfigGeneral.qml:303
+#: package/contents/ui/ConfigGeneral.qml:391
 msgid "Unhide"
 msgstr "Visa igen"
 
-#: package/contents/ui/GridWindow.qml:427
+#: package/contents/ui/GridPanel.qml:424
 msgid "More Results"
 msgstr "Fler resultat"
 
@@ -219,65 +293,76 @@ msgstr "Logga ut"
 msgid "Switch User"
 msgstr "Byt användare"
 
-#: package/contents/ui/PrefixModeView.qml:42
+#: package/contents/ui/PrefixModeView.qml:41
 msgid "Quick Commands"
 msgstr "Snabbkommandon"
 
-#: package/contents/ui/PrefixModeView.qml:51
+#: package/contents/ui/PrefixModeView.qml:50
 msgid "Terminal"
 msgstr "Terminal"
 
-#: package/contents/ui/PrefixModeView.qml:52
+#: package/contents/ui/PrefixModeView.qml:51
 msgid "Run Command"
 msgstr "Kör kommando"
 
-#: package/contents/ui/PrefixModeView.qml:53
+#: package/contents/ui/PrefixModeView.qml:52
 msgid "Browse Files"
 msgstr "Bläddra bland filer"
 
-#: package/contents/ui/PrefixModeView.qml:54
+#: package/contents/ui/PrefixModeView.qml:53
 msgid "Browse Home"
 msgstr "Bläddra i hemkatalogen"
 
-#: package/contents/ui/PrefixModeView.qml:55
+#: package/contents/ui/PrefixModeView.qml:54
 msgid "This Help"
 msgstr "Denna hjälp"
 
-#: package/contents/ui/PrefixModeView.qml:131
+#: package/contents/ui/PrefixModeView.qml:130
 msgid "Alt+1 – Alt+9 launches search results instantly"
 msgstr "Alt+1 – Alt+9 startar sökresultat omedelbart"
 
-#: package/contents/ui/PrefixModeView.qml:157
+#: package/contents/ui/PrefixModeView.qml:156
 msgid "Type a command to run in terminal"
 msgstr "Skriv ett kommando att köra i terminal"
 
-#: package/contents/ui/PrefixModeView.qml:158
+#: package/contents/ui/PrefixModeView.qml:157
 msgid "Type a command to execute"
 msgstr "Skriv ett kommando att köra"
 
-#: package/contents/ui/PrefixModeView.qml:160
+#: package/contents/ui/PrefixModeView.qml:159
 msgid "Press Enter to run in terminal"
 msgstr "Tryck Enter för att köra i terminal"
 
-#: package/contents/ui/PrefixModeView.qml:161
+#: package/contents/ui/PrefixModeView.qml:160
 msgid "Press Enter to execute"
 msgstr "Tryck Enter för att köra"
 
-#: package/contents/ui/SearchBar.qml:37
+#: package/contents/ui/RecentAppsHeader.qml:30
+msgid "Recently Used"
+msgstr "Senast använda"
+
+#: package/contents/ui/RecentAppsHeader.qml:92
+msgid "All Apps"
+msgstr "Alla program"
+
+#: package/contents/ui/SearchBar.qml:38
 msgid "Search apps or type ? for commands"
 msgstr "Sök appar eller skriv ? för kommandon"
 
-#: package/contents/ui/SearchBar.qml:60
+#: package/contents/ui/SearchBar.qml:64
 msgid "Search applications"
 msgstr "Sök program"
 
-#: package/contents/ui/SearchBar.qml:75
+#: package/contents/ui/SearchBar.qml:79
 msgid "Clear search"
 msgstr "Rensa sökning"
 
 #: package/contents/ui/SearchResultsList.qml:160
 msgid "Alt+%1: "
 msgstr "Alt+%1: "
+
+#~ msgid "Shake icons on open"
+#~ msgstr "Skaka ikoner vid öppning"
 
 #~ msgid "Available Commands"
 #~ msgstr "Tillgängliga kommandon"
