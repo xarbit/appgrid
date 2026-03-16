@@ -73,16 +73,13 @@ Kirigami.ShadowedRectangle {
     readonly property real panelWidth: estCellWidth * columns + panelMargin * 2
     readonly property real panelHeight: estCellHeight * rows + panelMargin * 2 + headerHeight
 
-    readonly property real minWidth: nativePopup ? Kirigami.Units.gridUnit * 28 : 0
-    readonly property real minHeight: nativePopup ? Kirigami.Units.gridUnit * 24 : 0
-
-    width: Math.max(minWidth, Math.min(panelWidth, Screen.width * 0.9))
-    height: Math.max(minHeight, Math.min(panelHeight, Screen.height * 0.9))
+    width: Math.min(panelWidth, Screen.width * 0.9)
+    height: Math.min(panelHeight, Screen.height * 0.9)
 
     Layout.preferredWidth: width
     Layout.preferredHeight: height
-    Layout.minimumWidth: nativePopup ? minWidth : width
-    Layout.minimumHeight: nativePopup ? minHeight : height
+    Layout.minimumWidth: nativePopup ? Kirigami.Units.gridUnit * 12 : width
+    Layout.minimumHeight: nativePopup ? Kirigami.Units.gridUnit * 12 : height
     radius: nativePopup ? 0
             : (Plasmoid.configuration.overrideRadius
                ? Plasmoid.configuration.cornerRadius
