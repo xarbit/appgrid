@@ -239,7 +239,11 @@ Kirigami.ShadowedRectangle {
                     if (panel.appsModel)
                         panel.appsModel.searchText = panel.isPrefixMode ? "" : text
                 }
-                onAltNumberPressed: function(number) {
+                onAltLetterPressed: function(key) {
+                    if (categoryBar.visible)
+                        categoryBar.selectByMnemonic(key)
+                }
+            onAltNumberPressed: function(number) {
                     if (panel.isSearching && !panel.isPrefixMode
                         && number <= searchResultsList.count) {
                         panel.launchApp(number - 1)

@@ -18,7 +18,85 @@ RowLayout {
     property bool favoritesActive: false
     readonly property bool favoritesFirst: Plasmoid.configuration.startWithFavorites || false
 
+    // Mnemonic map: uppercase letter → { type: "all"|"favorites"|"category", name: string }
+    property var mnemonicMap: ({})
+
     signal favoritesToggled(bool active)
+
+    // Build unique mnemonic assignments for all items.
+    // Each item gets the first letter in its name that isn't already taken.
+    function rebuildMnemonics() {
+        var used = {}
+        var map = {}
+        var items = []
+
+        // Collect all items: All, categories, Favorites
+        items.push({ type: "all", name: i18n("All") })
+        var cats = categoryBar.appsModel ? categoryBar.appsModel.categories() : []
+        for (var i = 0; i < cats.length; i++)
+            items.push({ type: "category", name: cats[i] })
+        items.push({ type: "favorites", name: i18n("Favorites") })
+
+        for (var i = 0; i < items.length; i++) {
+            var name = items[i].name
+            for (var j = 0; j < name.length; j++) {
+                var ch = name.charAt(j).toUpperCase()
+                if (ch >= 'A' && ch <= 'Z' && !used[ch]) {
+                    used[ch] = true
+                    map[ch] = items[i]
+                    break
+                }
+            }
+        }
+        mnemonicMap = map
+    }
+
+    // Returns text with '&' inserted before the mnemonic character
+    function mnemonicText(name) {
+        for (var letter in mnemonicMap) {
+            var entry = mnemonicMap[letter]
+            if (entry.name === name) {
+                var idx = name.toUpperCase().indexOf(letter)
+                if (idx >= 0)
+                    return name.substring(0, idx) + "&" + name.substring(idx)
+            }
+        }
+        return name
+    }
+
+    function selectByMnemonic(key) {
+        var letter = String.fromCharCode(key).toUpperCase()
+        var entry = mnemonicMap[letter]
+        if (!entry)
+            return false
+
+        if (entry.type === "all") {
+            if (categoryBar.favoritesActive)
+                categoryBar.favoritesToggled(false)
+            if (categoryBar.appsModel)
+                categoryBar.appsModel.filterCategory = ""
+            return true
+        }
+        if (entry.type === "favorites") {
+            categoryBar.favoritesToggled(!categoryBar.favoritesActive)
+            return true
+        }
+        if (entry.type === "category") {
+            if (categoryBar.favoritesActive)
+                categoryBar.favoritesToggled(false)
+            if (categoryBar.appsModel)
+                categoryBar.appsModel.filterCategory = entry.name
+            return true
+        }
+        return false
+    }
+
+    Component.onCompleted: rebuildMnemonics()
+    onAppsModelChanged: rebuildMnemonics()
+    Connections {
+        target: categoryBar.appsModel
+        function onCategoriesChanged() { categoryBar.rebuildMnemonics() }
+    }
 
     Layout.fillWidth: true
     spacing: 0
@@ -40,7 +118,7 @@ RowLayout {
 
     PlasmaComponents.ToolButton {
         Layout.fillWidth: true
-        text: i18n("All")
+        text: categoryBar.mnemonicText(i18n("All"))
         font.pointSize: Kirigami.Theme.defaultFont.pointSize * 1.1
         checked: !categoryBar.favoritesActive
                  && (!categoryBar.appsModel || categoryBar.appsModel.filterCategory === "")
@@ -60,7 +138,7 @@ RowLayout {
         delegate: PlasmaComponents.ToolButton {
             Layout.fillWidth: true
             required property string modelData
-            text: modelData
+            text: categoryBar.mnemonicText(modelData)
             font.pointSize: Kirigami.Theme.defaultFont.pointSize * 1.1
             checked: !categoryBar.favoritesActive
                      && categoryBar.appsModel && categoryBar.appsModel.filterCategory === modelData

@@ -20,6 +20,7 @@ RowLayout {
     signal moveDown()
     signal tabPressed()
     signal altNumberPressed(int number)
+    signal altLetterPressed(int key)
 
     Layout.fillWidth: true
     spacing: Kirigami.Units.smallSpacing
@@ -52,6 +53,9 @@ RowLayout {
                 var num = event.key - Qt.Key_0
                 if (num >= 1 && num <= 9) {
                     searchBar.altNumberPressed(num)
+                    event.accepted = true
+                } else if (event.key >= Qt.Key_A && event.key <= Qt.Key_Z) {
+                    searchBar.altLetterPressed(event.key)
                     event.accepted = true
                 }
             }
