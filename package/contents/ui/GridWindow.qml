@@ -68,7 +68,7 @@ Window {
     // -----------------------------------------------------------------------
 
     function showGrid() {
-        if (!windowConfigured && !isPopupMode) {
+        if (!windowConfigured) {
             Plasmoid.configureWindow(root)
             windowConfigured = true
         }

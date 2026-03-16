@@ -22,10 +22,6 @@
       <label>The URL of the custom image to use instead of an icon.</label>
       <default></default>
     </entry>
-    <entry name="displayMode" type="Int">
-      <label>Display mode (0=Fullscreen overlay, 1=Centered popup).</label>
-      <default>1</default>
-    </entry>
     <entry name="showScrollbars" type="Bool">
       <label>Whether to show scrollbars in the grid and search views.</label>
       <default>false</default>

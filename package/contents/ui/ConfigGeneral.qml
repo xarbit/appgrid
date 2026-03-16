@@ -26,7 +26,6 @@ KCMUtils.SimpleKCM {
     property alias cfg_gridRows: gridRows.value
     property alias cfg_iconSize: iconSize.currentIndex
     property alias cfg_sortMode: sortMode.currentIndex
-    property int cfg_displayMode: Plasmoid.configuration.displayMode
     property alias cfg_overrideRadius: overrideRadius.checked
     property alias cfg_cornerRadius: cornerRadius.value
     property alias cfg_showScrollbars: showScrollbars.checked
@@ -328,7 +327,6 @@ KCMUtils.SimpleKCM {
                 gridRows.value = 4
                 iconSize.currentIndex = 2
                 sortMode.currentIndex = 1
-                configGeneral.cfg_displayMode = 1
                 overrideRadius.checked = false
                 cornerRadius.value = 24
                 showScrollbars.checked = false
