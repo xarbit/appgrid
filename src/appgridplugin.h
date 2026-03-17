@@ -75,12 +75,14 @@ public:
 
 private slots:
     void onSourceChanged();
+    void doReset();
 
 private:
     AppFilterModel *m_appModel = nullptr;
     RunnerFilterModel *m_runnerModel = nullptr;
     int m_runnerSubtextRole = -1;
     int m_runnerCategoryRole = -1;
+    bool m_resetPending = false;
 };
 
 /**

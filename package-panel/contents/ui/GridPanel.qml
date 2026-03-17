@@ -253,7 +253,7 @@ Kirigami.ShadowedRectangle {
                 // Debounce KRunner queries — fires after typing pauses
                 Timer {
                     id: runnerDebounce
-                    interval: 200
+                    interval: 100
                     onTriggered: {
                         if (Plasmoid.runnerSourceModel) {
                             var q = searchBar.text
@@ -321,17 +321,15 @@ Kirigami.ShadowedRectangle {
                         }
                     }
                 }
-                onMoveDown: {
-                    if (panel.prefixMode === "files") {
-                        prefixModeView.focusFileList()
-                        return
-                    }
+                function navigateToResults() {
                     if (panel.isSearching && !panel.isPrefixMode) {
-                        if (searchResultsList.count > 0) {
+                        if (searchResultsList.count > 1) {
                             searchResultsList.forceActiveFocus()
-                            searchResultsList.currentIndex = 0
+                            searchResultsList.currentIndex = 1
+                        } else if (searchResultsList.count === 1) {
+                            searchResultsList.forceActiveFocus()
                         }
-                    } else {
+                    } else if (!panel.isSearching) {
                         appGrid.forceActiveFocus()
                         if (appGrid.showRecents) {
                             appGrid.recentIndex = 0
@@ -341,12 +339,15 @@ Kirigami.ShadowedRectangle {
                         }
                     }
                 }
-                onTabPressed: {
-                    if (panel.isSearching && searchResultsList.count > 0) {
-                        searchResultsList.forceActiveFocus()
-                        searchResultsList.currentIndex = 0
+
+                onMoveDown: {
+                    if (panel.prefixMode === "files") {
+                        prefixModeView.focusFileList()
+                        return
                     }
+                    navigateToResults()
                 }
+                onTabPressed: navigateToResults()
             }
 
             PowerButtons {

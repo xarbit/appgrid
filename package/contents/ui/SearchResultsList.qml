@@ -23,6 +23,10 @@ ListView {
     currentIndex: count > 0 ? 0 : -1
     highlightMoveDuration: 0
 
+    // Track mouse movement to prevent hover stealing focus when results appear under cursor
+    property bool mouseMovedSinceReset: false
+    onCountChanged: mouseMovedSinceReset = false
+
     Keys.onReturnPressed: if (currentIndex >= 0) listView.launched(currentIndex)
     Keys.onEnterPressed: if (currentIndex >= 0) listView.launched(currentIndex)
 
@@ -183,7 +187,12 @@ ListView {
                 hoverEnabled: true
                 acceptedButtons: Qt.LeftButton | Qt.RightButton
                 cursorShape: Qt.PointingHandCursor
-                onEntered: listView.currentIndex = model.index
+                onEntered: {
+                    if (!listView.mouseMovedSinceReset)
+                        listView.mouseMovedSinceReset = true
+                    else
+                        listView.currentIndex = model.index
+                }
                 onClicked: function(mouse) {
                     if (mouse.button === Qt.RightButton)
                         listView.contextMenuRequested(model.index, model.storageId || "", model.desktopFile || "")

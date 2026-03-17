@@ -499,6 +499,15 @@ void UnifiedSearchModel::setRunnerModel(RunnerFilterModel *model)
 
 void UnifiedSearchModel::onSourceChanged()
 {
+    if (!m_resetPending) {
+        m_resetPending = true;
+        QMetaObject::invokeMethod(this, &UnifiedSearchModel::doReset, Qt::QueuedConnection);
+    }
+}
+
+void UnifiedSearchModel::doReset()
+{
+    m_resetPending = false;
     beginResetModel();
     endResetModel();
 }
