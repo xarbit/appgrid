@@ -86,6 +86,7 @@ Window {
 
     Shortcut {
         sequence: "Escape"
+        enabled: root.visible
         onActivated: {
             if (root.appletInterface)
                 root.appletInterface.closeWindow()
