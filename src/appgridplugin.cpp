@@ -115,7 +115,6 @@ void AppGridPlugin::configureWindow(QWindow *window)
 
 void AppGridPlugin::updateWindowScreen(QWindow *window, bool useActiveScreen)
 {
-#ifdef HAVE_LAYERSHELL_SCREEN_API
     if (!window)
         return;
 
@@ -123,22 +122,31 @@ void AppGridPlugin::updateWindowScreen(QWindow *window, bool useActiveScreen)
     if (!layerWindow)
         return;
 
-    if (useActiveScreen) {
-        layerWindow->setWantsToBeOnActiveScreen(true);
-    } else {
+    // Determine target screen
+    QScreen *targetScreen = nullptr;
+    if (!useActiveScreen) {
         int screenNum = containment() ? containment()->screen() : -1;
         const auto screens = QGuiApplication::screens();
-        if (screenNum >= 0 && screenNum < screens.size()) {
-            layerWindow->setWantsToBeOnActiveScreen(false);
-            layerWindow->setScreen(screens.at(screenNum));
-        } else {
-            layerWindow->setWantsToBeOnActiveScreen(true);
-        }
+        if (screenNum >= 0 && screenNum < screens.size())
+            targetScreen = screens.at(screenNum);
     }
-#else
-    Q_UNUSED(window)
-    Q_UNUSED(useActiveScreen)
-#endif
+
+    // New API (LayerShellQt 6.6+)
+    if (layerWindow->metaObject()->indexOfProperty("wantsToBeOnActiveScreen") >= 0) {
+        if (useActiveScreen || !targetScreen) {
+            layerWindow->setProperty("wantsToBeOnActiveScreen", true);
+        } else {
+            layerWindow->setProperty("wantsToBeOnActiveScreen", false);
+            layerWindow->setProperty("screen", QVariant::fromValue(targetScreen));
+        }
+    } else {
+        // Old API (LayerShellQt < 6.6)
+        if (targetScreen)
+            window->setScreen(targetScreen);
+        layerWindow->setScreenConfiguration(
+            useActiveScreen ? LayerShellQt::Window::ScreenFromCompositor
+                            : LayerShellQt::Window::ScreenFromQWindow);
+    }
 }
 
 void AppGridPlugin::setBlurBehind(QWindow *window, bool enable, int x, int y, int w, int h, int radius)

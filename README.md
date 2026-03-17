@@ -11,6 +11,8 @@ Both variants share the same app grid, search, categories, quick commands, and c
 
 > **Note:** Starting with the 1.5.x release, AppGrid is considered feature complete. The focus going forward will be on stability, polish, and community-requested improvements. AppGrid is still a young project and may contain bugs or not work as expected on all setups. A big thank you to everyone who has been testing, reporting issues, and providing feedback — it has been invaluable in shaping the project. If you run into any issues, please [open an issue](https://github.com/xarbit/plasma6-applet-appgrid/issues) and report back.
 
+> **Compatibility:** AppGrid targets KDE Plasma 6 and supports a wide range of distributions. Multi-monitor screen selection works best with LayerShellQt 6.6+, but falls back to the older API on earlier versions. Pre-built packages are provided for Arch Linux (AUR), Fedora, openSUSE Tumbleweed, Ubuntu 25.04+, and Debian 13+.
+
 ![KDE Plasma](https://img.shields.io/badge/KDE_Plasma-6.0+-blue)
 ![License](https://img.shields.io/badge/License-GPL--2.0--or--later-green)
 
