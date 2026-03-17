@@ -45,6 +45,8 @@ AppGridPlugin::AppGridPlugin(QObject *parent, const KPluginMetaData &data, const
     m_runnerModel = new KRunner::ResultsModel(this);
     m_runnerFilterModel.setSourceModel(m_runnerModel);
     m_runnerFilterModel.setAppModel(&m_filterModel);
+    m_searchModel.setAppModel(&m_filterModel);
+    m_searchModel.setRunnerModel(&m_runnerFilterModel);
     QQuickWindow::setDefaultAlphaBuffer(true);
 
     // PlasmoidItem::init() connects activated → setExpanded(true).
@@ -76,6 +78,11 @@ QAbstractItemModel *AppGridPlugin::runnerModel()
 KRunner::ResultsModel *AppGridPlugin::runnerSourceModel()
 {
     return m_runnerModel;
+}
+
+UnifiedSearchModel *AppGridPlugin::searchModel()
+{
+    return &m_searchModel;
 }
 
 bool AppGridPlugin::runRunnerResult(int index)
@@ -403,6 +410,17 @@ void AppGridPlugin::addToDesktop(const QString &desktopFile)
     }
 }
 
+QVariantMap UnifiedSearchModel::get(int row) const
+{
+    QVariantMap map;
+    if (row < 0 || row >= rowCount()) return map;
+    const auto idx = index(row, 0);
+    const auto roles = roleNames();
+    for (auto it = roles.begin(); it != roles.end(); ++it)
+        map[QString::fromLatin1(it.value())] = data(idx, it.key());
+    return map;
+}
+
 // --- RunnerFilterModel ---
 
 RunnerFilterModel::RunnerFilterModel(QObject *parent)
@@ -433,4 +451,120 @@ bool RunnerFilterModel::filterAcceptsRow(int sourceRow, const QModelIndex &sourc
             return false;
     }
     return true;
+}
+
+// --- UnifiedSearchModel ---
+
+UnifiedSearchModel::UnifiedSearchModel(QObject *parent)
+    : QAbstractListModel(parent)
+{
+}
+
+void UnifiedSearchModel::setAppModel(AppFilterModel *model)
+{
+    m_appModel = model;
+    connect(model, &QAbstractItemModel::modelReset, this, &UnifiedSearchModel::onSourceChanged);
+    connect(model, &QAbstractItemModel::layoutChanged, this, &UnifiedSearchModel::onSourceChanged);
+    connect(model, &QAbstractItemModel::rowsInserted, this, &UnifiedSearchModel::onSourceChanged);
+    connect(model, &QAbstractItemModel::rowsRemoved, this, &UnifiedSearchModel::onSourceChanged);
+}
+
+void UnifiedSearchModel::setRunnerModel(RunnerFilterModel *model)
+{
+    m_runnerModel = model;
+    connect(model, &QAbstractItemModel::modelReset, this, &UnifiedSearchModel::onSourceChanged);
+    connect(model, &QAbstractItemModel::layoutChanged, this, &UnifiedSearchModel::onSourceChanged);
+    connect(model, &QAbstractItemModel::rowsInserted, this, &UnifiedSearchModel::onSourceChanged);
+    connect(model, &QAbstractItemModel::rowsRemoved, this, &UnifiedSearchModel::onSourceChanged);
+
+    const auto roles = model->roleNames();
+    for (auto it = roles.begin(); it != roles.end(); ++it) {
+        if (it.value() == "subtext") m_runnerSubtextRole = it.key();
+        if (it.value() == "category") m_runnerCategoryRole = it.key();
+    }
+}
+
+void UnifiedSearchModel::onSourceChanged()
+{
+    beginResetModel();
+    endResetModel();
+}
+
+int UnifiedSearchModel::appResultCount() const
+{
+    return m_appModel ? m_appModel->rowCount() : 0;
+}
+
+int UnifiedSearchModel::runnerResultCount() const
+{
+    return m_runnerModel ? m_runnerModel->rowCount() : 0;
+}
+
+int UnifiedSearchModel::rowCount(const QModelIndex &parent) const
+{
+    if (parent.isValid()) return 0;
+    return appResultCount() + runnerResultCount();
+}
+
+QVariant UnifiedSearchModel::data(const QModelIndex &index, int role) const
+{
+    const int row = index.row();
+    const int ac = appResultCount();
+    const bool isApp = row < ac;
+
+    switch (role) {
+    case ResultTypeRole:
+        return isApp ? QStringLiteral("app") : QStringLiteral("runner");
+    case IsSectionBoundaryRole:
+        return !isApp && row == ac && ac > 0;
+    case ShortcutNumberRole:
+        return (row < 9) ? row + 1 : 0;
+    case SourceIndexRole:
+        return isApp ? row : (row - ac);
+    default:
+        break;
+    }
+
+    if (isApp) {
+        const auto srcIdx = m_appModel->index(row, 0);
+        switch (role) {
+        case NameRole:        return srcIdx.data(AppModel::NameRole);
+        case IconRole:        return srcIdx.data(AppModel::IconRole);
+        case SubtextRole:     return srcIdx.data(AppModel::GenericNameRole);
+        case CategoryRole:    return srcIdx.data(AppModel::CategoryRole);
+        case StorageIdRole:   return srcIdx.data(AppModel::StorageIdRole);
+        case DesktopFileRole: return srcIdx.data(AppModel::DesktopFileRole);
+        case IsNewRole:       return m_appModel->isNewApp(srcIdx.data(AppModel::StorageIdRole).toString());
+        }
+    } else {
+        const int runnerRow = row - ac;
+        const auto srcIdx = m_runnerModel->index(runnerRow, 0);
+        switch (role) {
+        case NameRole:        return srcIdx.data(Qt::DisplayRole);
+        case IconRole:        return srcIdx.data(Qt::DecorationRole);
+        case SubtextRole:     return m_runnerSubtextRole >= 0 ? srcIdx.data(m_runnerSubtextRole) : QVariant();
+        case CategoryRole:    return m_runnerCategoryRole >= 0 ? srcIdx.data(m_runnerCategoryRole) : QVariant();
+        case StorageIdRole:   return QString();
+        case DesktopFileRole: return QString();
+        case IsNewRole:       return false;
+        }
+    }
+    return {};
+}
+
+QHash<int, QByteArray> UnifiedSearchModel::roleNames() const
+{
+    return {
+        {ResultTypeRole, "resultType"},
+        {NameRole, "name"},
+        {IconRole, "iconName"},
+        {SubtextRole, "subtext"},
+        {CategoryRole, "category"},
+        {StorageIdRole, "storageId"},
+        {DesktopFileRole, "desktopFile"},
+        {IsNewRole, "isNew"},
+        {ShortcutNumberRole, "shortcutNumber"},
+        {IsSectionBoundaryRole, "isSectionBoundary"},
+        {SourceIndexRole, "sourceIndex"},
+    };
 }

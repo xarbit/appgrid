@@ -2,8 +2,8 @@
     SPDX-FileCopyrightText: 2026 AppGrid Contributors
     SPDX-License-Identifier: GPL-2.0-or-later
 
-    List view for search results with keyboard navigation and number shortcuts.
-    Press Alt+1 through Alt+9 to quickly launch a result (COSMIC-style).
+    Unified search results list — renders app results and KRunner results
+    in a single ListView with continuous keyboard navigation.
 */
 
 import QtQuick
@@ -14,27 +14,18 @@ import org.kde.plasma.components as PlasmaComponents
 ListView {
     id: listView
 
-    // The search field to redirect typing to.
     property PlasmaComponents.TextField searchField: null
 
     signal launched(int index)
     signal contextMenuRequested(int index, string storageId, string desktopFile)
-    signal navigatedPastEnd()
-    signal navigatedPastStart()
 
     clip: true
-    currentIndex: 0
-    boundsBehavior: Flickable.StopAtBounds
-    highlight: Rectangle {
-        color: Kirigami.Theme.highlightColor
-        radius: Kirigami.Units.cornerRadius
-    }
+    currentIndex: -1
     highlightMoveDuration: 0
 
     Keys.onReturnPressed: if (currentIndex >= 0) listView.launched(currentIndex)
     Keys.onEnterPressed: if (currentIndex >= 0) listView.launched(currentIndex)
 
-    // Redirect typing back to search field.
     Keys.onPressed: function(event) {
         // Alt+1 through Alt+9 shortcuts
         if (event.modifiers & Qt.AltModifier) {
@@ -60,8 +51,6 @@ ListView {
     Keys.onDownPressed: {
         if (currentIndex < count - 1)
             currentIndex++
-        else
-            listView.navigatedPastEnd()
     }
 
     Keys.onUpPressed: {
@@ -75,124 +64,138 @@ ListView {
         if (currentIndex < count - 1)
             currentIndex++
         else
-            listView.navigatedPastEnd()
+            currentIndex = 0
     }
 
     Keys.onBacktabPressed: {
         if (currentIndex > 0)
             currentIndex--
         else
-            listView.navigatedPastStart()
+            currentIndex = count - 1
     }
 
     Keys.onEscapePressed: {
         if (searchField) searchField.forceActiveFocus()
     }
 
-    delegate: PlasmaComponents.ItemDelegate {
-        id: listDelegate
+    delegate: Column {
         width: listView.width
-        height: Kirigami.Units.iconSizes.huge + Kirigami.Units.smallSpacing * 2
-        highlighted: listView.activeFocus && listView.currentIndex === model.index
 
-        contentItem: RowLayout {
-            spacing: Kirigami.Units.largeSpacing
+        // Section divider between app results and runner results
+        Rectangle {
+            width: parent.width
+            height: 1
+            visible: model.isSectionBoundary
+            color: Qt.rgba(Kirigami.Theme.textColor.r,
+                           Kirigami.Theme.textColor.g,
+                           Kirigami.Theme.textColor.b, 0.15)
+        }
 
-            // Shortcut badge (Alt+1 through Alt+9)
-            Rectangle {
-                visible: model.index < 9
-                implicitWidth: shortcutLabel.implicitWidth + Kirigami.Units.smallSpacing * 2
-                implicitHeight: Kirigami.Units.gridUnit * 1.5
-                radius: Kirigami.Units.cornerRadius
-                color: Qt.rgba(Kirigami.Theme.highlightColor.r,
-                               Kirigami.Theme.highlightColor.g,
-                               Kirigami.Theme.highlightColor.b, 0.15)
-                border.width: 1
-                border.color: Qt.rgba(Kirigami.Theme.textColor.r,
-                                      Kirigami.Theme.textColor.g,
-                                      Kirigami.Theme.textColor.b, 0.2)
+        PlasmaComponents.ItemDelegate {
+            id: resultDelegate
+            width: listView.width
+            height: Kirigami.Units.iconSizes.huge + Kirigami.Units.smallSpacing * 2
+            highlighted: listView.activeFocus && listView.currentIndex === model.index
 
-                PlasmaComponents.Label {
-                    id: shortcutLabel
-                    anchors.centerIn: parent
-                    text: "Alt+" + String(model.index + 1)
-                    font.bold: true
-                    font.pointSize: Kirigami.Theme.smallFont.pointSize
-                    opacity: 0.7
+            contentItem: RowLayout {
+                spacing: Kirigami.Units.largeSpacing
+
+                // Alt+number shortcut badge
+                Rectangle {
+                    visible: model.shortcutNumber > 0
+                    implicitWidth: shortcutLabel.implicitWidth + Kirigami.Units.smallSpacing * 2
+                    implicitHeight: Kirigami.Units.gridUnit * 1.5
+                    radius: Kirigami.Units.cornerRadius
+                    color: Qt.rgba(Kirigami.Theme.highlightColor.r,
+                                   Kirigami.Theme.highlightColor.g,
+                                   Kirigami.Theme.highlightColor.b, 0.15)
+                    border.width: 1
+                    border.color: Qt.rgba(Kirigami.Theme.textColor.r,
+                                          Kirigami.Theme.textColor.g,
+                                          Kirigami.Theme.textColor.b, 0.2)
+
+                    PlasmaComponents.Label {
+                        id: shortcutLabel
+                        anchors.centerIn: parent
+                        text: "Alt+" + model.shortcutNumber
+                        font.bold: true
+                        font.pointSize: Kirigami.Theme.smallFont.pointSize
+                        opacity: 0.7
+                    }
+
+                    Accessible.ignored: true
                 }
 
-                Accessible.ignored: true
-            }
+                Kirigami.Icon {
+                    implicitWidth: Kirigami.Units.iconSizes.huge
+                    implicitHeight: Kirigami.Units.iconSizes.huge
+                    source: model.iconName || "application-x-executable"
+                }
 
-            Kirigami.Icon {
-                implicitWidth: Kirigami.Units.iconSizes.huge
-                implicitHeight: Kirigami.Units.iconSizes.huge
-                source: model.iconName || "application-x-executable"
-            }
-
-            ColumnLayout {
-                Layout.fillWidth: true
-                spacing: 0
-
-                RowLayout {
+                ColumnLayout {
                     Layout.fillWidth: true
+                    spacing: 0
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        PlasmaComponents.Label {
+                            Layout.fillWidth: true
+                            text: model.name || ""
+                            elide: Text.ElideRight
+                            color: resultDelegate.highlighted
+                                   ? Kirigami.Theme.highlightedTextColor
+                                   : Kirigami.Theme.textColor
+                        }
+                        Rectangle {
+                            implicitWidth: typeLabel.implicitWidth + Kirigami.Units.smallSpacing * 2
+                            implicitHeight: typeLabel.implicitHeight + Kirigami.Units.smallSpacing
+                            radius: Kirigami.Units.cornerRadius
+                            color: Qt.rgba(Kirigami.Theme.textColor.r,
+                                           Kirigami.Theme.textColor.g,
+                                           Kirigami.Theme.textColor.b, 0.08)
+
+                            PlasmaComponents.Label {
+                                id: typeLabel
+                                anchors.centerIn: parent
+                                text: model.category || i18nd("dev.xarbit.appgrid", "Application")
+                                font: Kirigami.Theme.smallFont
+                                opacity: 0.6
+                            }
+                        }
+                    }
+
                     PlasmaComponents.Label {
                         Layout.fillWidth: true
-                        text: model.name || ""
+                        text: model.subtext || ""
                         elide: Text.ElideRight
-                        color: listDelegate.highlighted
+                        font: Kirigami.Theme.smallFont
+                        opacity: 0.6
+                        visible: text.length > 0
+                        color: resultDelegate.highlighted
                                ? Kirigami.Theme.highlightedTextColor
                                : Kirigami.Theme.textColor
                     }
-                    Rectangle {
-                        implicitWidth: appTypeLabel.implicitWidth + Kirigami.Units.smallSpacing * 2
-                        implicitHeight: appTypeLabel.implicitHeight + Kirigami.Units.smallSpacing
-                        radius: Kirigami.Units.cornerRadius
-                        color: Qt.rgba(Kirigami.Theme.textColor.r,
-                                       Kirigami.Theme.textColor.g,
-                                       Kirigami.Theme.textColor.b, 0.08)
-
-                        PlasmaComponents.Label {
-                            id: appTypeLabel
-                            anchors.centerIn: parent
-                            text: model.category || i18nd("dev.xarbit.appgrid", "Application")
-                            font: Kirigami.Theme.smallFont
-                            opacity: 0.6
-                        }
-                    }
-                }
-
-                PlasmaComponents.Label {
-                    Layout.fillWidth: true
-                    text: model.genericName || ""
-                    elide: Text.ElideRight
-                    font: Kirigami.Theme.smallFont
-                    opacity: 0.6
-                    visible: text.length > 0
-                    color: listDelegate.highlighted
-                           ? Kirigami.Theme.highlightedTextColor
-                           : Kirigami.Theme.textColor
                 }
             }
-        }
 
-        MouseArea {
-            anchors.fill: parent
-            hoverEnabled: true
-            acceptedButtons: Qt.LeftButton | Qt.RightButton
-            cursorShape: Qt.PointingHandCursor
-            onEntered: listView.currentIndex = model.index
-            onClicked: function(mouse) {
-                if (mouse.button === Qt.RightButton)
-                    listView.contextMenuRequested(model.index, model.storageId || "", model.desktopFile || "")
-                else
-                    listView.launched(model.index)
+            MouseArea {
+                anchors.fill: parent
+                hoverEnabled: true
+                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                cursorShape: Qt.PointingHandCursor
+                onEntered: listView.currentIndex = model.index
+                onClicked: function(mouse) {
+                    if (mouse.button === Qt.RightButton)
+                        listView.contextMenuRequested(model.index, model.storageId || "", model.desktopFile || "")
+                    else
+                        listView.launched(model.index)
+                }
+
+                Accessible.name: (model.shortcutNumber > 0 ? "Alt+" + model.shortcutNumber + ": " : "") + (model.name || "")
+                Accessible.role: Accessible.Button
+                Accessible.description: model.subtext || ""
+                Accessible.focusable: true
             }
-
-            Accessible.name: (model.index < 9 ? i18nd("dev.xarbit.appgrid", "Alt+%1: ", model.index + 1) : "") + (model.name || "")
-            Accessible.role: Accessible.Button
-            Accessible.description: model.genericName || ""
-            Accessible.focusable: true
         }
     }
 }

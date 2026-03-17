@@ -33,6 +33,57 @@ private:
 };
 
 /**
+ * @brief Unified search model combining app results and KRunner results.
+ *
+ * Concatenates AppFilterModel rows (apps) with RunnerFilterModel rows (KRunner)
+ * into a single list with unified role names. Enables one ListView for all search results.
+ */
+class UnifiedSearchModel : public QAbstractListModel {
+    Q_OBJECT
+    Q_PROPERTY(int appResultCount READ appResultCount NOTIFY layoutChanged)
+    Q_PROPERTY(int runnerResultCount READ runnerResultCount NOTIFY layoutChanged)
+
+public:
+    enum Roles {
+        ResultTypeRole = Qt::UserRole + 100,
+        NameRole,
+        IconRole,
+        SubtextRole,
+        CategoryRole,
+        StorageIdRole,
+        DesktopFileRole,
+        IsNewRole,
+        ShortcutNumberRole,
+        IsSectionBoundaryRole,
+        SourceIndexRole,
+    };
+    Q_ENUM(Roles)
+
+    explicit UnifiedSearchModel(QObject *parent = nullptr);
+
+    void setAppModel(AppFilterModel *model);
+    void setRunnerModel(RunnerFilterModel *model);
+
+    int rowCount(const QModelIndex &parent = QModelIndex()) const override;
+    QVariant data(const QModelIndex &index, int role) const override;
+    QHash<int, QByteArray> roleNames() const override;
+
+    int appResultCount() const;
+    int runnerResultCount() const;
+
+    Q_INVOKABLE QVariantMap get(int row) const;
+
+private slots:
+    void onSourceChanged();
+
+private:
+    AppFilterModel *m_appModel = nullptr;
+    RunnerFilterModel *m_runnerModel = nullptr;
+    int m_runnerSubtextRole = -1;
+    int m_runnerCategoryRole = -1;
+};
+
+/**
  * @brief Main Plasma applet plugin for the AppGrid application launcher.
  *
  * Provides a macOS-style fullscreen application grid with category filtering,
@@ -45,6 +96,7 @@ class AppGridPlugin : public Plasma::Applet {
     Q_PROPERTY(AppFilterModel *appsModel READ appsModel CONSTANT)
     Q_PROPERTY(QAbstractItemModel *runnerModel READ runnerModel CONSTANT)
     Q_PROPERTY(KRunner::ResultsModel *runnerSourceModel READ runnerSourceModel CONSTANT)
+    Q_PROPERTY(UnifiedSearchModel *searchModel READ searchModel CONSTANT)
 
 public:
     AppGridPlugin(QObject *parent, const KPluginMetaData &data, const QVariantList &args);
@@ -52,6 +104,7 @@ public:
     AppFilterModel *appsModel();
     QAbstractItemModel *runnerModel();
     KRunner::ResultsModel *runnerSourceModel();
+    UnifiedSearchModel *searchModel();
 
     // --- Window management ---
 
@@ -121,5 +174,6 @@ private:
     AppFilterModel m_filterModel;
     KRunner::ResultsModel *m_runnerModel = nullptr;
     RunnerFilterModel m_runnerFilterModel;
+    UnifiedSearchModel m_searchModel;
     SessionManagement *m_session = nullptr;
 };

@@ -205,22 +205,16 @@ Kirigami.ShadowedRectangle {
         searchBar.field.forceActiveFocus()
     }
 
-    // -- Search focus management --
-    // Centralized helpers to keep focus state clean across app results, runner results, and search bar.
-
-    function focusAppResults(index) {
-        runnerResults.currentIndex = -1
-        searchResultsList.forceActiveFocus()
-        searchResultsList.currentIndex = index
+    function launchSearchResult(index) {
+        var item = Plasmoid.searchModel.get(index)
+        if (!item) return
+        if (item.resultType === "app") {
+            launchApp(item.sourceIndex)
+        } else {
+            if (Plasmoid.runRunnerResult(item.sourceIndex))
+                closeRequested()
+        }
     }
-
-    function focusRunnerResults(index) {
-        searchResultsList.currentIndex = -1
-        runnerResults.forceActiveFocus()
-        runnerResults.currentIndex = index
-    }
-
-    readonly property bool hasRunnerResults: runnerResults.visible && runnerResults.count > 0
 
     function launchApp(index) {
         if (appsModel && index >= 0) {
@@ -306,15 +300,8 @@ Kirigami.ShadowedRectangle {
                 }
             onAltNumberPressed: function(number) {
                     if (!panel.isSearching || panel.isPrefixMode) return
-                    if (number <= searchResultsList.count) {
-                        panel.launchApp(number - 1)
-                    } else {
-                        var runnerIdx = number - 1 - searchResultsList.count
-                        if (runnerIdx >= 0 && runnerIdx < runnerResults.count) {
-                            if (Plasmoid.runRunnerResult(runnerIdx))
-                                panel.closeRequested()
-                        }
-                    }
+                    if (number >= 1 && number <= searchResultsList.count)
+                        panel.launchSearchResult(number - 1)
                 }
                 onAccepted: {
                     if (panel.prefixMode === "terminal") {
@@ -326,11 +313,12 @@ Kirigami.ShadowedRectangle {
                     } else if (panel.prefixMode === "files") {
                         prefixModeView.activateFileCurrent()
                     } else if (!panel.isPrefixMode) {
-                        // Runner results handle their own Enter key
-                        if (runnerResults.activeFocus)
-                            return
-                        var view = panel.isSearching ? searchResultsList : appGrid
-                        if (view.currentIndex >= 0) panel.launchApp(view.currentIndex)
+                        if (panel.isSearching) {
+                            var idx = searchResultsList.currentIndex >= 0 ? searchResultsList.currentIndex : 0
+                            if (searchResultsList.count > 0) panel.launchSearchResult(idx)
+                        } else {
+                            if (appGrid.currentIndex >= 0) panel.launchApp(appGrid.currentIndex)
+                        }
                     }
                 }
                 onMoveDown: {
@@ -339,10 +327,10 @@ Kirigami.ShadowedRectangle {
                         return
                     }
                     if (panel.isSearching && !panel.isPrefixMode) {
-                        if (searchResultsList.count > 0)
-                            panel.focusAppResults(0)
-                        else if (panel.hasRunnerResults)
-                            panel.focusRunnerResults(0)
+                        if (searchResultsList.count > 0) {
+                            searchResultsList.forceActiveFocus()
+                            searchResultsList.currentIndex = 0
+                        }
                     } else {
                         appGrid.forceActiveFocus()
                         if (appGrid.showRecents) {
@@ -354,14 +342,9 @@ Kirigami.ShadowedRectangle {
                     }
                 }
                 onTabPressed: {
-                    if (panel.isSearching) {
-                        // Skip app results if only 1 item (Enter already launches it)
-                        if (searchResultsList.count <= 1 && panel.hasRunnerResults)
-                            panel.focusRunnerResults(0)
-                        else if (searchResultsList.count > 0)
-                            panel.focusAppResults(0)
-                        else if (panel.hasRunnerResults)
-                            panel.focusRunnerResults(0)
+                    if (panel.isSearching && searchResultsList.count > 0) {
+                        searchResultsList.forceActiveFocus()
+                        searchResultsList.currentIndex = 0
                     }
                 }
             }
@@ -423,7 +406,7 @@ Kirigami.ShadowedRectangle {
             }
         }
 
-        // -- Search results (app results + KRunner results) --
+        // -- Unified search results --
         PlasmaComponents.ScrollView {
             Layout.fillWidth: true
             Layout.fillHeight: true
@@ -431,238 +414,14 @@ Kirigami.ShadowedRectangle {
             PlasmaComponents.ScrollBar.vertical.policy: panel.scrollBarPolicy
             visible: panel.isSearching && !panel.isPrefixMode
 
-            Flickable {
-                id: searchFlickable
-                contentHeight: searchColumn.implicitHeight
-                boundsBehavior: Flickable.StopAtBounds
-
-                ColumnLayout {
-                    id: searchColumn
-                    width: searchFlickable.width
-                    spacing: 0
-
-                    SearchResultsList {
-                        id: searchResultsList
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: contentHeight
-                        model: panel.isSearching ? panel.appsModel : null
-                        searchField: searchBar.field
-                        interactive: false
-                        onLaunched: function(index) { panel.launchApp(index) }
-                        onContextMenuRequested: function(index, storageId, desktopFile) {
-                            if (storageId)
-                                contextMenu.showForApp(index, storageId, desktopFile)
-                        }
-                        onNavigatedPastEnd: {
-                            if (panel.hasRunnerResults)
-                                panel.focusRunnerResults(0)
-                            else
-                                panel.focusAppResults(0)
-                        }
-                        onNavigatedPastStart: {
-                            if (panel.hasRunnerResults)
-                                panel.focusRunnerResults(runnerResults.count - 1)
-                            else
-                                panel.focusAppResults(searchResultsList.count - 1)
-                        }
-                    }
-
-                    // Divider between app results and runner results
-                    Rectangle {
-                        Layout.fillWidth: true
-                        Layout.topMargin: Kirigami.Units.smallSpacing
-                        Layout.bottomMargin: Kirigami.Units.smallSpacing
-                        implicitHeight: 1
-                        color: Qt.rgba(Kirigami.Theme.textColor.r,
-                                       Kirigami.Theme.textColor.g,
-                                       Kirigami.Theme.textColor.b, 0.15)
-                        visible: runnerResults.visible && searchResultsList.count > 0
-                    }
-
-                    ListView {
-                        id: runnerResults
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: contentHeight
-                        interactive: false
-                        visible: panel.isSearching
-                                 && Plasmoid.configuration.useExtraRunners !== false
-                                 && count > 0
-                        model: Plasmoid.runnerModel
-                        currentIndex: -1
-                        highlightMoveDuration: 0
-
-                        Keys.onReturnPressed: {
-                            if (currentIndex >= 0) {
-                                if (Plasmoid.runRunnerResult(currentIndex))
-                                    panel.closeRequested()
-                            }
-                        }
-                        Keys.onEnterPressed: Keys.onReturnPressed
-
-                        Keys.onTabPressed: {
-                            if (currentIndex >= count - 1) {
-                                if (searchResultsList.count > 0)
-                                    panel.focusAppResults(0)
-                                else
-                                    panel.focusRunnerResults(0)
-                            } else {
-                                currentIndex++
-                            }
-                        }
-                        Keys.onBacktabPressed: {
-                            if (currentIndex <= 0) {
-                                if (searchResultsList.count > 0)
-                                    panel.focusAppResults(searchResultsList.count - 1)
-                                else
-                                    panel.focusRunnerResults(count - 1)
-                            } else {
-                                currentIndex--
-                            }
-                        }
-                        Keys.onUpPressed: {
-                            if (currentIndex > 0)
-                                currentIndex--
-                            else if (searchResultsList.count > 0)
-                                panel.focusAppResults(searchResultsList.count - 1)
-                        }
-                        Keys.onDownPressed: {
-                            if (currentIndex < count - 1)
-                                currentIndex++
-                        }
-
-                        // Alt+number shortcuts and redirect typing back to search
-                        Keys.onPressed: function(event) {
-                            if (event.modifiers & Qt.AltModifier) {
-                                var num = event.key - Qt.Key_0
-                                var offset = searchResultsList.count
-                                var runnerIdx = num - 1 - offset
-                                if (num >= 1 && num <= 9 && runnerIdx >= 0 && runnerIdx < count) {
-                                    if (Plasmoid.runRunnerResult(runnerIdx))
-                                        panel.closeRequested()
-                                    event.accepted = true
-                                    return
-                                }
-                            }
-                            if (event.text.length > 0 && !event.modifiers && searchBar.field) {
-                                searchBar.field.forceActiveFocus()
-                                searchBar.field.text += event.text
-                                event.accepted = true
-                            }
-                        }
-
-                        delegate: PlasmaComponents.ItemDelegate {
-                            id: runnerDelegate
-                            width: runnerResults.width
-                            height: Kirigami.Units.iconSizes.huge + Kirigami.Units.smallSpacing * 2
-                            highlighted: runnerResults.activeFocus && runnerResults.currentIndex === model.index
-
-                            contentItem: RowLayout {
-                                spacing: Kirigami.Units.largeSpacing
-
-                                // Alt+number shortcut badge (continues from app results)
-                                Rectangle {
-                                    property int shortcutNum: searchResultsList.count + model.index + 1
-                                    visible: shortcutNum <= 9
-                                    implicitWidth: runnerShortcutLabel.implicitWidth + Kirigami.Units.smallSpacing * 2
-                                    implicitHeight: Kirigami.Units.gridUnit * 1.5
-                                    radius: Kirigami.Units.cornerRadius
-                                    color: Qt.rgba(Kirigami.Theme.highlightColor.r,
-                                                   Kirigami.Theme.highlightColor.g,
-                                                   Kirigami.Theme.highlightColor.b, 0.15)
-                                    border.width: 1
-                                    border.color: Qt.rgba(Kirigami.Theme.textColor.r,
-                                                          Kirigami.Theme.textColor.g,
-                                                          Kirigami.Theme.textColor.b, 0.2)
-
-                                    PlasmaComponents.Label {
-                                        id: runnerShortcutLabel
-                                        anchors.centerIn: parent
-                                        text: "Alt+" + String(parent.shortcutNum)
-                                        font.bold: true
-                                        font.pointSize: Kirigami.Theme.smallFont.pointSize
-                                        opacity: 0.7
-                                    }
-
-                                    Accessible.ignored: true
-                                }
-
-                                Kirigami.Icon {
-                                    implicitWidth: Kirigami.Units.iconSizes.huge
-                                    implicitHeight: Kirigami.Units.iconSizes.huge
-                                    source: model.decoration || "application-x-executable"
-                                }
-
-                                ColumnLayout {
-                                    Layout.fillWidth: true
-                                    spacing: 0
-
-                                    RowLayout {
-                                        Layout.fillWidth: true
-                                        PlasmaComponents.Label {
-                                            Layout.fillWidth: true
-                                            text: model.display || ""
-                                            elide: Text.ElideRight
-                                            color: runnerDelegate.highlighted
-                                                   ? Kirigami.Theme.highlightedTextColor
-                                                   : Kirigami.Theme.textColor
-                                        }
-                                        Rectangle {
-                                            visible: (model.category || "") !== ""
-                                            implicitWidth: runnerTypeLabel.implicitWidth + Kirigami.Units.smallSpacing * 2
-                                            implicitHeight: runnerTypeLabel.implicitHeight + Kirigami.Units.smallSpacing
-                                            radius: Kirigami.Units.cornerRadius
-                                            color: Qt.rgba(Kirigami.Theme.textColor.r,
-                                                           Kirigami.Theme.textColor.g,
-                                                           Kirigami.Theme.textColor.b, 0.08)
-
-                                            PlasmaComponents.Label {
-                                                id: runnerTypeLabel
-                                                anchors.centerIn: parent
-                                                text: model.category || ""
-                                                font: Kirigami.Theme.smallFont
-                                                opacity: 0.6
-                                            }
-                                        }
-                                    }
-                                    PlasmaComponents.Label {
-                                        Layout.fillWidth: true
-                                        text: model.subtext || ""
-                                        elide: Text.ElideRight
-                                        font: Kirigami.Theme.smallFont
-                                        opacity: 0.6
-                                        visible: text.length > 0
-                                        color: runnerDelegate.highlighted
-                                               ? Kirigami.Theme.highlightedTextColor
-                                               : Kirigami.Theme.textColor
-                                    }
-                                }
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                acceptedButtons: Qt.LeftButton | Qt.RightButton
-                                cursorShape: Qt.PointingHandCursor
-                                onEntered: runnerResults.currentIndex = model.index
-                                onClicked: function(mouse) {
-                                    if (mouse.button === Qt.RightButton) {
-                                        // Show context menu for application results
-                                        var urls = model.urls
-                                        if (urls && urls.length > 0) {
-                                            var url = urls[0].toString()
-                                            if (url.endsWith(".desktop")) {
-                                                var storageId = url.split("/").pop()
-                                                contextMenu.showForApp(-1, storageId, url.replace("file://", ""))
-                                            }
-                                        }
-                                    } else {
-                                        if (Plasmoid.runRunnerResult(model.index))
-                                            panel.closeRequested()
-                                    }
-                                }
-                            }
-                        }
-                    }
+            SearchResultsList {
+                id: searchResultsList
+                model: panel.isSearching ? Plasmoid.searchModel : null
+                searchField: searchBar.field
+                onLaunched: function(index) { panel.launchSearchResult(index) }
+                onContextMenuRequested: function(index, storageId, desktopFile) {
+                    if (storageId)
+                        contextMenu.showForApp(-1, storageId, desktopFile)
                 }
             }
         }
