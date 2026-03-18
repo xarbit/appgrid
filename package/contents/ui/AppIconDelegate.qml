@@ -88,7 +88,7 @@ Item {
             Layout.fillHeight: true
             verticalAlignment: Text.AlignTop
             text: root.appName
-            font: Kirigami.Theme.smallFont
+            font: Kirigami.Theme.defaultFont
             elide: Text.ElideRight
             maximumLineCount: 2
             wrapMode: Text.Wrap
