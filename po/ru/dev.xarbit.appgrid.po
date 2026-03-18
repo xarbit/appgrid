@@ -1,0 +1,429 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: https://github.com/xarbit/plasma6-applet-appgrid/"
+"issues\n"
+"POT-Creation-Date: 2026-03-16 17:14+0100\n"
+"PO-Revision-Date: 2026-03-18 19:51+0700\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: ru\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 3.6\n"
+
+#: package/contents/ui/AppContextMenu.qml:32
+#: package/contents/ui/AppIconDelegate.qml:115
+msgid "Remove from Favorites"
+msgstr "Убрать из избранного"
+
+#: package/contents/ui/AppContextMenu.qml:32
+msgid "Add to Favorites"
+msgstr "Добавить в избранное"
+
+#: package/contents/ui/AppContextMenu.qml:47
+#: package/contents/ui/AppContextMenu.qml:49
+msgid "Pin to Task Manager"
+msgstr "Закрепить на панели задач"
+
+#: package/contents/ui/AppContextMenu.qml:55
+#: package/contents/ui/AppContextMenu.qml:57
+msgid "Add to Desktop"
+msgstr "Добавить значок на рабочий стол"
+
+#: package/contents/ui/AppContextMenu.qml:63
+#: package/contents/ui/AppContextMenu.qml:65
+msgid "Edit Application"
+msgstr "Изменить приложение"
+
+#: package/contents/ui/AppContextMenu.qml:73
+#: package/contents/ui/AppContextMenu.qml:80
+msgid "Hide Application"
+msgstr "Скрыть приложение"
+
+#: package/contents/ui/AppIconDelegate.qml:147
+msgid "new"
+msgstr "создать"
+
+#: package/contents/ui/CategoryBar.qml:58
+#: package/contents/ui/CategoryBar.qml:194
+msgid "All"
+msgstr "Все"
+
+#: package/contents/ui/CategoryBar.qml:62
+#: package/contents/ui/CategoryBar.qml:183
+#: package/contents/ui/CategoryBar.qml:187
+#: package/contents/ui/CategoryBar.qml:314
+#: package/contents/ui/CategoryBar.qml:318
+msgid "Favorites"
+msgstr "Избранное"
+
+#: package/contents/ui/CategoryBar.qml:203
+msgid "All applications"
+msgstr "Все приложения"
+
+#: package/contents/ui/CategoryBar.qml:217
+msgid "Scroll categories left"
+msgstr "Прокрутить категории влево"
+
+#: package/contents/ui/CategoryBar.qml:302
+msgid "Scroll categories right"
+msgstr "Прокрутить категории вправо"
+
+#: package/contents/ui/CategoryBar.qml:329
+msgid "Edit \"%1\" in Menu Editor…"
+msgstr "Изменить \"%1\" в Редакторе меню…"
+
+#: package/contents/ui/CategoryBar.qml:337
+msgid "Open Menu Editor…"
+msgstr "Редактировать меню…"
+
+#: package/contents/ui/ConfigGeneral.qml:74
+msgid "Icon:"
+msgstr "Значок:"
+
+#: package/contents/ui/ConfigGeneral.qml:135
+msgctxt "@item:inmenu Open icon chooser dialog"
+msgid "Choose…"
+msgstr "Выбрать…"
+
+#: package/contents/ui/ConfigGeneral.qml:140
+msgctxt "@item:inmenu Reset icon to default"
+msgid "Clear Icon"
+msgstr "Удалить значок"
+
+#: package/contents/ui/ConfigGeneral.qml:157
+msgid "Icons per row:"
+msgstr "Иконок в строке:"
+
+#: package/contents/ui/ConfigGeneral.qml:163
+msgid "Visible rows:"
+msgstr "Видимых строк:"
+
+#: package/contents/ui/ConfigGeneral.qml:169
+msgid "Icon size:"
+msgstr "Размер иконок:"
+
+#: package/contents/ui/ConfigGeneral.qml:170
+msgid "Small"
+msgstr "Маленький"
+
+#: package/contents/ui/ConfigGeneral.qml:170
+msgid "Medium"
+msgstr "Средний"
+
+#: package/contents/ui/ConfigGeneral.qml:170
+msgid "Large"
+msgstr "Большой"
+
+#: package/contents/ui/ConfigGeneral.qml:174
+msgid "Sort order:"
+msgstr "Сортировка:"
+
+#: package/contents/ui/ConfigGeneral.qml:179
+msgid "Alphabetical"
+msgstr "Имя"
+
+#: package/contents/ui/ConfigGeneral.qml:179
+msgid "Most Used"
+msgstr "Часто используемые"
+
+#: package/contents/ui/ConfigGeneral.qml:184
+msgid "Show recently used applications"
+msgstr "Показывать недавно использованные приложения"
+
+#: package/contents/ui/ConfigGeneral.qml:195
+msgid "Behavior:"
+msgstr "Поведение:"
+
+#: package/contents/ui/ConfigGeneral.qml:196
+msgid "Show category bar"
+msgstr "Показать панель категорий"
+
+#: package/contents/ui/ConfigGeneral.qml:201
+msgid "Search all apps regardless of active tab"
+msgstr "Искать все приложения, независимо от активной вкладки"
+
+#: package/contents/ui/ConfigGeneral.qml:206
+msgid "Start with favorites tab"
+msgstr "Запуск со вкладки Избранное"
+
+#: package/contents/ui/ConfigGeneral.qml:212
+msgid "Use system categories (supports KDE Menu Editor)"
+msgstr "Использовать системные категории (поддерживает Редактор меню KDE)"
+
+#: package/contents/ui/ConfigGeneral.qml:218
+msgid "Terminal shell:"
+msgstr "Оболочка терминала:"
+
+#: package/contents/ui/ConfigGeneral.qml:222
+msgid "Default (/bin/sh)"
+msgstr "По умолчанию (/bin/sh)"
+
+#: package/contents/ui/ConfigGeneral.qml:242
+msgid "Appearance:"
+msgstr "Внешний вид:"
+
+#: package/contents/ui/ConfigGeneral.qml:243
+msgid "Show scrollbars"
+msgstr "Показать полосы прокрутки"
+
+#: package/contents/ui/ConfigGeneral.qml:248
+msgid "Enable background blur"
+msgstr "Включить размытие фона"
+
+#: package/contents/ui/ConfigGeneral.qml:253
+msgid "Icon animation:"
+msgstr "Анимация иконок:"
+
+#: package/contents/ui/ConfigGeneral.qml:254
+msgid "None"
+msgstr "Отключена"
+
+#: package/contents/ui/ConfigGeneral.qml:254
+msgid "Shake"
+msgstr "Тряска"
+
+#: package/contents/ui/ConfigGeneral.qml:254
+msgid "Grow"
+msgstr "Увеличение"
+
+#: package/contents/ui/ConfigGeneral.qml:254
+msgid "Bounce"
+msgstr "Подпрыгивание"
+
+#: package/contents/ui/ConfigGeneral.qml:254
+msgid "Spin"
+msgstr "Вращение"
+
+#: package/contents/ui/ConfigGeneral.qml:254
+msgid "Shuffle"
+msgstr "Перемешать"
+
+#: package/contents/ui/ConfigGeneral.qml:259
+msgid "Animate icons on open"
+msgstr "Анимировать иконки при открытии"
+
+#: package/contents/ui/ConfigGeneral.qml:265
+msgid "Show labels on power/session buttons"
+msgstr "Подписи кнопок управления питанием/сеансами"
+
+#: package/contents/ui/ConfigGeneral.qml:270
+msgid "Expand search to bookmarks, files, and websites"
+msgstr "Расширить поиск на закладки, файлы и вебсайты"
+
+#: package/contents/ui/ConfigGeneral.qml:274
+msgid "Configure Search Plugins…"
+msgstr "Настроить модули поиска…"
+
+#: package/contents/ui/ConfigGeneral.qml:281
+msgid "Background opacity:"
+msgstr "Прозрачность фона:"
+
+#: package/contents/ui/ConfigGeneral.qml:297
+msgid "Corner radius:"
+msgstr "Радиус скругления:"
+
+#: package/contents/ui/ConfigGeneral.qml:298
+msgid "Use custom corner radius"
+msgstr "Использовать свой радиус скругления"
+
+#: package/contents/ui/ConfigGeneral.qml:310
+msgid "px"
+msgstr "px"
+
+#: package/contents/ui/ConfigGeneral.qml:322
+msgid "Reset to Defaults"
+msgstr "Сбросить настройки"
+
+#: package/contents/ui/ConfigGeneral.qml:355
+msgid "Hidden Applications"
+msgstr "Скрытые приложения"
+
+#: package/contents/ui/ConfigGeneral.qml:362
+msgid ""
+"Right-click any application in the grid and choose \"Hide Application\" to "
+"add it here."
+msgstr ""
+"Нажмите правой кнопкой мыши по приложению и выберите \"Скрыть "
+"приложение\", чтобы оно появилось здесь."
+
+#: package/contents/ui/ConfigGeneral.qml:370
+msgid "No hidden applications."
+msgstr "Нет скрытых приложений."
+
+#: package/contents/ui/ConfigGeneral.qml:400
+msgid "Unhide"
+msgstr "Показать"
+
+#: package/contents/ui/GridPanel.qml:433
+msgid "More Results"
+msgstr "Больше результатов"
+
+#: package/contents/ui/GridPanel.qml:530
+msgid "Click an icon to select it, then click another to swap positions"
+msgstr ""
+"Нажмите на значок, чтобы выбрать его, а затем на другой, чтобы поменять их "
+"местами"
+
+#: package/contents/ui/GridPanel.qml:531
+msgid "Now click another icon to swap, or click again to deselect"
+msgstr ""
+"Теперь нажмите на другой значок чтобы поменять их местами, или ещё раз для "
+"отмены выбора"
+
+#: package/contents/ui/GridPanel.qml:553
+msgid "Done"
+msgstr "Готово"
+
+#: package/contents/ui/GridPanel.qml:553
+msgid "Reorder favorites"
+msgstr "Упорядочить избранное"
+
+#: package/contents/ui/PowerButtons.qml:25
+msgid "Sleep"
+msgstr "Сон"
+
+#: package/contents/ui/PowerButtons.qml:26
+msgid "Restart"
+msgstr "Перезагрузка"
+
+#: package/contents/ui/PowerButtons.qml:27
+msgid "Shut Down"
+msgstr "Выключение"
+
+#: package/contents/ui/PowerButtons.qml:48
+#: package/contents/ui/PowerButtons.qml:51
+#: package/contents/ui/PowerButtons.qml:57
+msgid "Session"
+msgstr "Сессия"
+
+#: package/contents/ui/PowerButtons.qml:66
+#: package/contents/ui/PowerButtons.qml:68
+msgid "Lock"
+msgstr "Блокировка"
+
+#: package/contents/ui/PowerButtons.qml:73
+#: package/contents/ui/PowerButtons.qml:75
+msgid "Log Out"
+msgstr "Завершение сеанса"
+
+#: package/contents/ui/PowerButtons.qml:80
+#: package/contents/ui/PowerButtons.qml:82
+msgid "Switch User"
+msgstr "Смена пользователя"
+
+#: package/contents/ui/PrefixModeView.qml:41
+msgid "Quick Commands"
+msgstr "Быстрые команды"
+
+#: package/contents/ui/PrefixModeView.qml:50
+msgid "Terminal"
+msgstr "Терминал"
+
+#: package/contents/ui/PrefixModeView.qml:51
+msgid "Run Command"
+msgstr "Запустить команду"
+
+#: package/contents/ui/PrefixModeView.qml:52
+msgid "Browse Files"
+msgstr "Обзор файлов"
+
+#: package/contents/ui/PrefixModeView.qml:53
+msgid "Browse Home"
+msgstr "Домашняя папка"
+
+#: package/contents/ui/PrefixModeView.qml:54
+msgid "This Help"
+msgstr "Справка"
+
+#: package/contents/ui/PrefixModeView.qml:130
+msgid "Alt+1 – Alt+9 launches search results instantly"
+msgstr "Alt+1 - Alt+9 мгновенно запускает результат поиска"
+
+#: package/contents/ui/PrefixModeView.qml:156
+msgid "Type a command to run in terminal"
+msgstr "Введите команду чтобы выполнить ее в терминале"
+
+#: package/contents/ui/PrefixModeView.qml:157
+msgid "Type a command to execute"
+msgstr "Введите команду чтобы выполнить её"
+
+#: package/contents/ui/PrefixModeView.qml:159
+msgid "Press Enter to run in terminal"
+msgstr "Нажмите Enter для запуска в терминале"
+
+#: package/contents/ui/PrefixModeView.qml:160
+msgid "Press Enter to execute"
+msgstr "Нажмите Enter чтобы исполнить"
+
+#: package/contents/ui/RecentAppsHeader.qml:30
+msgid "Recently Used"
+msgstr "Недавно использованные"
+
+#: package/contents/ui/RecentAppsHeader.qml:92
+msgid "All Apps"
+msgstr "Все приложения"
+
+#: package/contents/ui/SearchBar.qml:38
+msgid "Search apps or type ? for commands"
+msgstr "Поиск приложений или введите «?» для команд"
+
+#: package/contents/ui/SearchBar.qml:64
+msgid "Search applications"
+msgstr "Поиск приложений"
+
+#: package/contents/ui/SearchBar.qml:79
+msgid "Clear search"
+msgstr "Очистить поиск"
+
+#: package/contents/ui/SearchResultsList.qml:160
+msgid "Alt+%1: "
+msgstr "Alt+%1: "
+
+#: src/appmodel.cpp:167
+msgid "Utilities"
+msgstr "Служебные"
+
+#: src/appmodel.cpp:168
+msgid "Development"
+msgstr "Разработка"
+
+#: src/appmodel.cpp:169
+msgid "Graphics"
+msgstr "Графика"
+
+#: src/appmodel.cpp:170
+msgid "Internet"
+msgstr "Интернет"
+
+#: src/appmodel.cpp:171
+msgid "Multimedia"
+msgstr "Мультимедиа"
+
+#: src/appmodel.cpp:172
+msgid "Office"
+msgstr "Офис"
+
+#: src/appmodel.cpp:173
+msgid "Games"
+msgstr "Игры"
+
+#: src/appmodel.cpp:174
+msgid "Education"
+msgstr "Учеба"
+
+#: src/appmodel.cpp:175
+msgid "System"
+msgstr "Система"
+
+#: src/appmodel.cpp:176
+msgid "Other"
+msgstr "Другие"
