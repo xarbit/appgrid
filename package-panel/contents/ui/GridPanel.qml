@@ -352,6 +352,7 @@ Kirigami.ShadowedRectangle {
 
             PowerButtons {
                 id: powerButtons
+                visible: Plasmoid.configuration.showSessionButtons !== false
                 onActionTriggered: panel.closeRequested()
             }
         }

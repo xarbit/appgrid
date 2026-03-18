@@ -30,6 +30,7 @@ KCMUtils.SimpleKCM {
     property alias cfg_startWithFavorites: startWithFavorites.checked
     property alias cfg_shakeOnOpen: shakeOnOpen.checked
     property alias cfg_hoverAnimation: hoverAnimation.currentIndex
+    property alias cfg_showSessionButtons: showSessionButtons.checked
     property alias cfg_showActionLabels: showActionLabels.checked
     property alias cfg_showRecentApps: showRecentApps.checked
     property alias cfg_useExtraRunners: useExtraRunners.checked
@@ -240,8 +241,14 @@ KCMUtils.SimpleKCM {
         }
 
         QQC2.CheckBox {
+            id: showSessionButtons
+            text: i18nd("dev.xarbit.appgrid", "Show power/session buttons")
+        }
+
+        QQC2.CheckBox {
             id: showActionLabels
             text: i18nd("dev.xarbit.appgrid", "Show labels on power/session buttons")
+            enabled: showSessionButtons.checked
         }
 
         QQC2.CheckBox {
@@ -277,6 +284,7 @@ KCMUtils.SimpleKCM {
                 startWithFavorites.checked = false
                 shakeOnOpen.checked = true
                 hoverAnimation.currentIndex = 1
+                showSessionButtons.checked = true
                 showActionLabels.checked = false
                 showRecentApps.checked = true
                 useExtraRunners.checked = true

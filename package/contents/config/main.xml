@@ -30,6 +30,10 @@
       <label>Whether to show divider lines between UI sections.</label>
       <default>false</default>
     </entry>
+    <entry name="showSessionButtons" type="Bool">
+      <label>Whether to show power and session buttons (sleep, restart, shut down, lock, etc.).</label>
+      <default>true</default>
+    </entry>
     <entry name="showScrollbars" type="Bool">
       <label>Whether to show scrollbars in the grid and search views.</label>
       <default>false</default>
