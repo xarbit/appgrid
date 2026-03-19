@@ -378,63 +378,88 @@ KCMUtils.SimpleKCM {
 
         // --- Hidden applications ---
 
-        Item {
-            Kirigami.FormData.isSection: true
-            Kirigami.FormData.label: i18nd("dev.xarbit.appgrid", "Hidden Applications")
-        }
+        Item { Kirigami.FormData.isSection: true }
 
-        QQC2.Label {
-            Kirigami.FormData.label: ""
+        ColumnLayout {
+            Kirigami.FormData.label: i18nd("dev.xarbit.appgrid", "Hidden apps:")
             Layout.fillWidth: true
-            wrapMode: Text.WordWrap
-            text: i18nd("dev.xarbit.appgrid", "Right-click any application in the grid and choose \"Hide Application\" to add it here.")
-            font: Kirigami.Theme.smallFont
-            opacity: 0.7
-        }
+            spacing: Kirigami.Units.smallSpacing
 
-        QQC2.Label {
-            Kirigami.FormData.label: ""
-            visible: hiddenAppsModel.count === 0
-            text: i18nd("dev.xarbit.appgrid", "No hidden applications.")
-            opacity: 0.5
-        }
-
-        Repeater {
-            model: hiddenAppsModel
-
-            delegate: QQC2.ItemDelegate {
-                Kirigami.FormData.label: ""
+            QQC2.Label {
                 Layout.fillWidth: true
-                required property string storageId
-                required property int index
+                wrapMode: Text.WordWrap
+                text: i18nd("dev.xarbit.appgrid", "Right-click any app in the grid to hide it, or type h: in the search bar.")
+                font: Kirigami.Theme.smallFont
+                opacity: 0.5
+            }
 
-                contentItem: RowLayout {
-                    spacing: Kirigami.Units.smallSpacing
+            QQC2.Label {
+                visible: hiddenAppsModel.count === 0
+                text: i18nd("dev.xarbit.appgrid", "No hidden applications.")
+                opacity: 0.5
+                Layout.topMargin: Kirigami.Units.smallSpacing
+            }
 
-                    Kirigami.Icon {
-                        implicitWidth: Kirigami.Units.iconSizes.small
-                        implicitHeight: Kirigami.Units.iconSizes.small
-                        source: "application-x-executable"
-                    }
+            Repeater {
+                model: hiddenAppsModel
 
-                    QQC2.Label {
-                        Layout.fillWidth: true
-                        text: storageId
-                        elide: Text.ElideRight
-                    }
+                delegate: QQC2.ItemDelegate {
+                    Layout.fillWidth: true
+                    required property string storageId
+                    required property int index
 
-                    QQC2.ToolButton {
-                        icon.name: "edit-delete-remove"
-                        QQC2.ToolTip.text: i18nd("dev.xarbit.appgrid", "Unhide")
-                        QQC2.ToolTip.visible: hovered
-                        QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
-                        onClicked: {
-                            var list = configGeneral.cfg_hiddenApps.slice()
-                            list.splice(index, 1)
-                            configGeneral.cfg_hiddenApps = list
+                    property var appInfo: Plasmoid.appsModel.getByStorageId(storageId) || ({})
+
+                    contentItem: RowLayout {
+                        spacing: Kirigami.Units.largeSpacing
+
+                        Kirigami.Icon {
+                            implicitWidth: Kirigami.Units.iconSizes.smallMedium
+                            implicitHeight: Kirigami.Units.iconSizes.smallMedium
+                            source: appInfo.iconName || "application-x-executable"
+                        }
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 0
+
+                            QQC2.Label {
+                                Layout.fillWidth: true
+                                text: appInfo.name || storageId
+                                elide: Text.ElideRight
+                            }
+
+                            QQC2.Label {
+                                Layout.fillWidth: true
+                                visible: !!appInfo.name
+                                text: storageId
+                                font: Kirigami.Theme.smallFont
+                                opacity: 0.4
+                                elide: Text.ElideRight
+                            }
+                        }
+
+                        QQC2.ToolButton {
+                            icon.name: "view-visible"
+                            QQC2.ToolTip.text: i18nd("dev.xarbit.appgrid", "Unhide")
+                            QQC2.ToolTip.visible: hovered
+                            QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
+                            onClicked: {
+                                var list = configGeneral.cfg_hiddenApps.slice()
+                                list.splice(index, 1)
+                                configGeneral.cfg_hiddenApps = list
+                            }
                         }
                     }
                 }
+            }
+
+            QQC2.Button {
+                visible: hiddenAppsModel.count > 0
+                Layout.topMargin: Kirigami.Units.smallSpacing
+                icon.name: "edit-undo"
+                text: i18nd("dev.xarbit.appgrid", "Unhide All")
+                onClicked: configGeneral.cfg_hiddenApps = []
             }
         }
     }

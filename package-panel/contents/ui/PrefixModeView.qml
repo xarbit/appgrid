@@ -14,7 +14,7 @@ import org.kde.plasma.plasmoid
 Item {
     id: prefixView
 
-    property string mode: ""       // "help", "terminal", "command", "files"
+    property string mode: ""       // "help", "terminal", "command", "files", "info", "hidden"
     property string argument: ""   // text after the prefix
     property Item searchField: null
 
@@ -44,23 +44,49 @@ Item {
             Layout.bottomMargin: Kirigami.Units.largeSpacing * 2
         }
 
-        // Command list
+        // Command list with sections
         Repeater {
             model: [
+                { section: i18nd("dev.xarbit.appgrid", "Run") },
                 { prefix: "t:", icon: "utilities-terminal", title: i18nd("dev.xarbit.appgrid", "Terminal"), example: "t:htop" },
                 { prefix: ":",  icon: "system-run",         title: i18nd("dev.xarbit.appgrid", "Run Command"), example: ":xdg-open ." },
+
+                { section: i18nd("dev.xarbit.appgrid", "Browse") },
                 { prefix: "/",  icon: "folder-open",        title: i18nd("dev.xarbit.appgrid", "Browse Files"), example: "/usr/bin" },
                 { prefix: "~/", icon: "folder-home",        title: i18nd("dev.xarbit.appgrid", "Browse Home"), example: "~/Documents" },
-                { prefix: "i:",  icon: "documentinfo",        title: i18nd("dev.xarbit.appgrid", "System Info"), example: "i:" },
+
+                { section: i18nd("dev.xarbit.appgrid", "Tools") },
+                { prefix: "i:", icon: "documentinfo",       title: i18nd("dev.xarbit.appgrid", "System Info"), example: "i:" },
+                { prefix: "h:", icon: "view-hidden",        title: i18nd("dev.xarbit.appgrid", "Hidden Apps"), example: "h:" },
                 { prefix: "?",  icon: "help-hint",          title: i18nd("dev.xarbit.appgrid", "This Help"), example: "" }
             ]
 
             delegate: Item {
                 Layout.fillWidth: true
-                implicitHeight: commandRow.implicitHeight + Kirigami.Units.largeSpacing * 2
+                implicitHeight: modelData.section
+                    ? sectionLabel.implicitHeight + Kirigami.Units.largeSpacing * 2
+                    : commandRow.implicitHeight + Kirigami.Units.largeSpacing * 2
 
+                // Section header
+                PlasmaComponents.Label {
+                    id: sectionLabel
+                    visible: !!modelData.section
+                    anchors {
+                        left: parent.left
+                        bottom: parent.bottom
+                        bottomMargin: Kirigami.Units.smallSpacing
+                    }
+                    text: modelData.section || ""
+                    font.pointSize: Kirigami.Theme.smallFont.pointSize
+                    font.bold: true
+                    opacity: 0.4
+                    font.capitalization: Font.AllUppercase
+                }
+
+                // Command row
                 RowLayout {
                     id: commandRow
+                    visible: !modelData.section
                     anchors {
                         left: parent.left
                         right: parent.right
@@ -71,7 +97,7 @@ Item {
                     Kirigami.Icon {
                         implicitWidth: Kirigami.Units.iconSizes.smallMedium
                         implicitHeight: Kirigami.Units.iconSizes.smallMedium
-                        source: modelData.icon
+                        source: modelData.icon || ""
                         opacity: 0.6
                     }
 
@@ -88,29 +114,30 @@ Item {
                         PlasmaComponents.Label {
                             id: prefixText
                             anchors.centerIn: parent
-                            text: modelData.prefix
+                            text: modelData.prefix || ""
                             font.family: "monospace"
                             font.bold: true
                         }
                     }
 
                     PlasmaComponents.Label {
-                        text: modelData.title
+                        text: modelData.title || ""
                         Layout.fillWidth: true
                     }
 
                     // Example
                     PlasmaComponents.Label {
-                        visible: modelData.example.length > 0
-                        text: modelData.example
+                        visible: (modelData.example || "").length > 0
+                        text: modelData.example || ""
                         font.family: "monospace"
                         font.pointSize: Kirigami.Theme.smallFont.pointSize
                         opacity: 0.4
                     }
                 }
 
-                // Bottom separator
+                // Bottom separator (commands only)
                 Rectangle {
+                    visible: !modelData.section
                     anchors.bottom: parent.bottom
                     anchors.left: parent.left
                     anchors.right: parent.right
@@ -284,6 +311,143 @@ Item {
             Layout.fillWidth: true
             Layout.topMargin: Kirigami.Units.smallSpacing
             text: i18nd("dev.xarbit.appgrid", "Include this info when reporting issues on GitHub")
+            font: Kirigami.Theme.smallFont
+            opacity: 0.35
+            horizontalAlignment: Text.AlignHCenter
+        }
+    }
+
+    // -- Hidden apps manager --
+    ColumnLayout {
+        anchors.fill: parent
+        anchors.margins: Kirigami.Units.largeSpacing * 2
+        visible: prefixView.mode === "hidden"
+        spacing: 0
+
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.bottomMargin: Kirigami.Units.largeSpacing * 2
+
+            PlasmaComponents.Label {
+                text: i18nd("dev.xarbit.appgrid", "Hidden Applications")
+                font.bold: true
+                font.pointSize: Kirigami.Theme.defaultFont.pointSize * 1.3
+                Layout.fillWidth: true
+            }
+
+            PlasmaComponents.Button {
+                visible: Plasmoid.appsModel.hiddenApps.length > 0
+                icon.name: "edit-undo"
+                text: i18nd("dev.xarbit.appgrid", "Unhide All")
+                onClicked: {
+                    Plasmoid.appsModel.hiddenApps = []
+                    Plasmoid.configuration.hiddenApps = []
+                }
+            }
+        }
+
+        // Empty state — centered in the remaining space
+        Item {
+            visible: Plasmoid.appsModel.hiddenApps.length === 0
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+
+            ColumnLayout {
+                anchors.centerIn: parent
+                spacing: Kirigami.Units.largeSpacing
+
+                Kirigami.Icon {
+                    Layout.alignment: Qt.AlignHCenter
+                    implicitWidth: Kirigami.Units.iconSizes.huge
+                    implicitHeight: Kirigami.Units.iconSizes.huge
+                    source: "view-visible"
+                    opacity: 0.3
+                }
+
+                PlasmaComponents.Label {
+                    Layout.alignment: Qt.AlignHCenter
+                    text: i18nd("dev.xarbit.appgrid", "No hidden applications")
+                    opacity: 0.5
+                }
+
+                PlasmaComponents.Label {
+                    Layout.alignment: Qt.AlignHCenter
+                    text: i18nd("dev.xarbit.appgrid", "Right-click any app in the grid to hide it")
+                    font: Kirigami.Theme.smallFont
+                    opacity: 0.35
+                }
+            }
+        }
+
+        // Hidden apps list
+        PlasmaComponents.ScrollView {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            visible: Plasmoid.appsModel.hiddenApps.length > 0
+            PlasmaComponents.ScrollBar.horizontal.policy: PlasmaComponents.ScrollBar.AlwaysOff
+
+            ListView {
+                id: hiddenList
+                clip: true
+                boundsBehavior: Flickable.StopAtBounds
+                model: Plasmoid.appsModel.hiddenApps
+
+                delegate: PlasmaComponents.ItemDelegate {
+                    id: hiddenDelegate
+                    width: hiddenList.width
+                    height: Kirigami.Units.iconSizes.medium + Kirigami.Units.smallSpacing * 2
+
+                    property var appInfo: Plasmoid.appsModel.getByStorageId(modelData) || ({})
+
+                    contentItem: RowLayout {
+                        spacing: Kirigami.Units.largeSpacing
+
+                        Kirigami.Icon {
+                            implicitWidth: Kirigami.Units.iconSizes.medium
+                            implicitHeight: Kirigami.Units.iconSizes.medium
+                            source: hiddenDelegate.appInfo.iconName || "application-x-executable"
+                        }
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 0
+
+                            PlasmaComponents.Label {
+                                Layout.fillWidth: true
+                                text: hiddenDelegate.appInfo.name || modelData
+                                elide: Text.ElideRight
+                            }
+
+                            PlasmaComponents.Label {
+                                Layout.fillWidth: true
+                                visible: text.length > 0
+                                text: hiddenDelegate.appInfo.genericName || ""
+                                font: Kirigami.Theme.smallFont
+                                opacity: 0.5
+                                elide: Text.ElideRight
+                            }
+                        }
+
+                        PlasmaComponents.ToolButton {
+                            icon.name: "view-visible"
+                            PlasmaComponents.ToolTip.text: i18nd("dev.xarbit.appgrid", "Unhide")
+                            PlasmaComponents.ToolTip.visible: hovered
+                            PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
+                            onClicked: {
+                                Plasmoid.appsModel.unhideApp(modelData)
+                                Plasmoid.configuration.hiddenApps = Plasmoid.appsModel.hiddenApps
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        PlasmaComponents.Label {
+            Layout.fillWidth: true
+            Layout.topMargin: Kirigami.Units.largeSpacing
+            visible: Plasmoid.appsModel.hiddenApps.length > 0
+            text: i18nd("dev.xarbit.appgrid", "%1 hidden application(s)", Plasmoid.appsModel.hiddenApps.length)
             font: Kirigami.Theme.smallFont
             opacity: 0.35
             horizontalAlignment: Text.AlignHCenter
