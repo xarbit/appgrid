@@ -13,6 +13,8 @@ Both variants share the same app grid, search, categories, quick commands, and c
 
 > **Compatibility:** AppGrid targets KDE Plasma 6 and supports a wide range of distributions. Multi-monitor screen selection works best with LayerShellQt 6.6+, but falls back to the older API on earlier versions. Pre-built packages are provided for Arch Linux (AUR), Fedora, openSUSE Tumbleweed, Ubuntu 25.04+, and Debian 13+.
 
+> **Wayland-first:** AppGrid is developed and tested on Wayland. The standalone launcher's fullscreen overlay, multi-monitor screen selection, and blur rely on LayerShellQt, which is Wayland-only. The **AppGrid (Panel)** variant uses Plasma's native popup and should work on both Wayland and X11. Full X11 support is [being evaluated](https://github.com/xarbit/plasma6-applet-appgrid/issues/44) — if you'd like to see it, please voice your interest on the issue.
+
 ![KDE Plasma](https://img.shields.io/badge/KDE_Plasma-6.0+-blue)
 ![License](https://img.shields.io/badge/License-GPL--2.0--or--later-green)
 
