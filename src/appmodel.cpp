@@ -156,7 +156,9 @@ QVariant AppModel::data(const QModelIndex &index, int role) const
     case DesktopFileRole:
         return app.desktopFile;
     case CategoryRole:
-        return app.category;
+        return app.categories.isEmpty() ? QString() : app.categories.first();
+    case CategoriesRole:
+        return app.categories;
     case GenericNameRole:
         return app.genericName;
     case StorageIdRole:
@@ -174,6 +176,7 @@ QHash<int, QByteArray> AppModel::roleNames() const
         {IconRole, "iconName"},
         {DesktopFileRole, "desktopFile"},
         {CategoryRole, "category"},
+        {CategoriesRole, "categories"},
         {GenericNameRole, "genericName"},
         {StorageIdRole, "storageId"},
         {KeywordsRole, "keywords"},
@@ -196,15 +199,18 @@ static QString translateCategory(const QString &name)
     return name;
 }
 
-QString AppModel::mapCategory(const QStringList &categories) const
+QStringList AppModel::mapCategories(const QStringList &categories) const
 {
     const auto &map = categoryMap();
+    QSet<QString> result;
     for (const auto &cat : categories) {
         auto it = map.find(cat);
         if (it != map.end())
-            return translateCategory(it.value());
+            result.insert(translateCategory(it.value()));
     }
-    return translateCategory(QStringLiteral("Other"));
+    if (result.isEmpty())
+        result.insert(translateCategory(QStringLiteral("Other")));
+    return result.values();
 }
 
 bool AppModel::useSystemCategories() const
@@ -289,12 +295,15 @@ void AppModel::loadApplications()
             appEntry.storageId = storageId;
             appEntry.keywords = service->keywords();
 
-            if (systemMode)
-                appEntry.category = category.isEmpty() ? QStringLiteral("Other") : category;
-            else
-                appEntry.category = mapCategory(service->categories());
+            if (systemMode) {
+                auto cat = category.isEmpty() ? QStringLiteral("Other") : category;
+                appEntry.categories.append(cat);
+            } else {
+                appEntry.categories = mapCategories(service->categories());
+            }
 
-            categorySet.insert(appEntry.category);
+            for (const auto &cat : std::as_const(appEntry.categories))
+                categorySet.insert(cat);
             m_apps.append(appEntry);
         }
     };
@@ -538,8 +547,8 @@ bool AppFilterModel::filterAcceptsRow(int sourceRow, const QModelIndex &sourcePa
     }
 
     if (!m_filterCategory.isEmpty()) {
-        const auto category = idx.data(AppModel::CategoryRole).toString();
-        if (category != m_filterCategory)
+        const auto categories = idx.data(AppModel::CategoriesRole).toStringList();
+        if (!categories.contains(m_filterCategory))
             return false;
     }
 

@@ -16,7 +16,7 @@ struct AppEntry {
     QString name;
     QString icon;
     QString desktopFile;
-    QString category;
+    QStringList categories;
     QString genericName;
     QString storageId;
     QStringList keywords;
@@ -37,6 +37,7 @@ public:
         IconRole,
         DesktopFileRole,
         CategoryRole,
+        CategoriesRole,
         GenericNameRole,
         StorageIdRole,
         KeywordsRole,
@@ -64,7 +65,7 @@ private slots:
 
 private:
     void loadApplications();
-    QString mapCategory(const QStringList &categories) const;
+    QStringList mapCategories(const QStringList &categories) const;
 
     QVector<AppEntry> m_apps;
     QStringList m_categories;
