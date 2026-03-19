@@ -24,7 +24,8 @@ ListView {
 
     clip: true
     currentIndex: count > 0 ? 0 : -1
-    highlightMoveDuration: 0
+    property bool animateHighlight: true
+    highlightMoveDuration: animateHighlight ? Kirigami.Units.shortDuration : 0
 
     // Track mouse movement to prevent hover stealing focus when results appear under cursor
     property bool mouseMovedSinceReset: false

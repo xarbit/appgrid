@@ -141,6 +141,9 @@ GridView {
     keyNavigationEnabled: true
     currentIndex: -1
     highlightFollowsCurrentItem: true
+    highlightMoveDuration: animateHighlight ? Kirigami.Units.shortDuration : 0
+
+    property bool animateHighlight: true
 
     // Smooth transitions when items move during drag reorder
     move: Transition {

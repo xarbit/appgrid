@@ -446,6 +446,7 @@ Kirigami.ShadowedRectangle {
                 model: panel.isSearching ? Plasmoid.searchModel : null
                 iconSize: panel.gridIconSize
                 showDividers: panel.cfgShowDividers
+                animateHighlight: (Plasmoid.configuration.hoverAnimation || 0) > 0
                 searchField: searchBar.field
                 onLaunched: function(index) { panel.launchSearchResult(index) }
                 onContextMenuRequested: function(index, storageId, desktopFile) {
@@ -512,6 +513,7 @@ Kirigami.ShadowedRectangle {
                     startWithFavorites: panel.cfgStartWithFavorites
                     favoritesActive: panel.isFavoritesActive
                     showDividers: panel.cfgShowDividers
+                    animateHighlight: (Plasmoid.configuration.hoverAnimation || 0) > 0
                     shuffleOverlayParent: shuffleOverlay
                     onOriginYChanged: {
                         if (panel._needsScrollToTop) {
