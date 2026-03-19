@@ -120,7 +120,7 @@ Kirigami.ShadowedRectangle {
                         Kirigami.Theme.textColor, 0.2)
 
     shadow.size: nativePopup ? 0 : Kirigami.Units.gridUnit
-    shadow.color: nativePopup ? "transparent" : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.3)
+    shadow.color: nativePopup ? "transparent" : Qt.rgba(0, 0, 0, 0.4)
     shadow.xOffset: 0
     shadow.yOffset: nativePopup ? 0 : Kirigami.Units.smallSpacing
 
