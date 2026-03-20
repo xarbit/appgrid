@@ -188,6 +188,16 @@ AppGrid uses a C++ backend for app discovery, window management, blur effects, a
 
 Switch to the favorites tab, then click the edit button (pencil icon) in the bottom-right corner. Icons will start wiggling. Click an icon to select it, then click another to swap their positions. You can also remove favorites by clicking the remove button on each icon. Click the done button (checkmark). Your order is saved automatically.
 
+**How does "Recently Used" work?**
+
+The recently used section shows apps you've launched recently. Where it appears depends on your settings:
+
+- **Start with Favorites OFF** — recently used shows in the "All" tab (Alphabetical sort only, since Most Used already surfaces frequent apps)
+- **Start with Favorites ON** — recently used shows in the Favorites tab instead (any sort order)
+- **By Category sort** — recently used shows at the top of the category view (unless Start with Favorites is on)
+
+The setting is only greyed out when it has no effect (Most Used sort without Start with Favorites). When you turn it off, the recent apps list is cleared. Turning it back on starts fresh — apps will appear as you launch them.
+
 **What are the two category modes?**
 
 By default, AppGrid uses a simplified built-in category mapping that groups apps into clean categories like Development, Graphics, Internet, Multimedia, Office, System, and Utilities. If you enable "Use system categories" in settings, AppGrid reads categories directly from the KDE menu system. This respects any changes made in KDE Menu Editor — you can rename, reorganize, or create custom categories and AppGrid will reflect them automatically. Right-click any category to open the Menu Editor.
