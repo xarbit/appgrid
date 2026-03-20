@@ -307,8 +307,8 @@ bool AppFilterModel::filterAcceptsRow(int sourceRow, const QModelIndex &sourcePa
 
     // In "All" view (no category, no search), hide recents from the main grid
     // (they are shown in the header section instead).
-    // Skip this when sorting by most-used — all apps stay in the grid.
-    if (m_sortMode == Alphabetical
+    // Skip when: sorting by most-used, showing favorites, or filtering by category/search.
+    if (m_sortMode == Alphabetical && !m_showFavoritesOnly
         && m_filterCategory.isEmpty() && m_searchText.isEmpty()
         && !m_recentApps.isEmpty() && m_recentApps.contains(sid))
         return false;
