@@ -17,7 +17,10 @@ Kirigami.ShadowedRectangle {
 
     signal closeRequested()
 
-    function shakeAllIcons() { appGrid.shakeAllIcons() }
+    function shakeAllIcons() {
+        appGrid.shakeAllIcons()
+        categoryGridView.shakeAllIcons()
+    }
 
     // Dev/testing flags (populated at build time from BUILDFLAGS)
     DevFlags { id: devFlags }

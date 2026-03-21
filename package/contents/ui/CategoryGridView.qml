@@ -28,6 +28,7 @@ Flickable {
     signal launched(int proxyIndex)
     signal recentLaunched(string storageId)
     signal contextMenuRequested(int proxyIndex, string storageId, string desktopFile)
+    signal shakeAllIcons()
 
     contentWidth: width
     contentHeight: contentColumn.implicitHeight
@@ -167,6 +168,7 @@ Flickable {
 
         // Recently used section at the top
         RecentAppsHeader {
+            id: catRecentHeader
             width: contentColumn.width
             height: categoryGrid.showRecents ? implicitHeight : 0
             visible: categoryGrid.showRecents
@@ -182,6 +184,11 @@ Flickable {
             onRecentLaunched: function(storageId) { categoryGrid.recentLaunched(storageId) }
             onContextMenuRequested: function(storageId, desktopFile) {
                 categoryGrid.contextMenuRequested(-1, storageId, desktopFile)
+            }
+
+            Connections {
+                target: categoryGrid
+                function onShakeAllIcons() { catRecentHeader.shakeAll() }
             }
         }
 
@@ -239,6 +246,7 @@ Flickable {
                             }
 
                             AppIconDelegate {
+                                id: catIconDelegate
                                 anchors.fill: parent
                                 appName: modelData.name || ""
                                 appIcon: modelData.iconName || "application-x-executable"
@@ -250,6 +258,11 @@ Flickable {
                                     else
                                         categoryGrid.launched(modelData.proxyIndex)
                                 }
+                            }
+
+                            Connections {
+                                target: categoryGrid
+                                function onShakeAllIcons() { catIconDelegate.shake() }
                             }
                         }
                     }
