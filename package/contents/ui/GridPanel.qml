@@ -592,8 +592,10 @@ Kirigami.ShadowedRectangle {
         onClicked: {
             appGrid.editMode = !appGrid.editMode
             appGrid.selectedSwapIndex = -1
-            if (!appGrid.editMode)
+            if (!appGrid.editMode) {
                 appGrid.favoritesOrderChanged()
+                searchBar.field.forceActiveFocus()
+            }
         }
 
         PlasmaComponents.ToolTip.text: appGrid.editMode ? i18nd("dev.xarbit.appgrid", "Done") : i18nd("dev.xarbit.appgrid", "Reorder favorites")
