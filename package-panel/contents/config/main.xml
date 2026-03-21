@@ -30,6 +30,10 @@
       <label>Whether to show power and session buttons (sleep, restart, shut down, lock, etc.).</label>
       <default>true</default>
     </entry>
+    <entry name="showTooltips" type="Bool">
+      <label>Whether to show tooltips on app icon hover.</label>
+      <default>true</default>
+    </entry>
     <entry name="showScrollbars" type="Bool">
       <label>Whether to show scrollbars in the grid and search views.</label>
       <default>false</default>

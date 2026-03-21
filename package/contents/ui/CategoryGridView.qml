@@ -23,6 +23,7 @@ Flickable {
     property real iconSize: Kirigami.Units.iconSizes.huge
     property bool showRecents: false
     property bool showDividers: true
+    property bool showTooltips: true
     property Item searchField: null
 
     signal launched(int proxyIndex)
@@ -181,6 +182,7 @@ Flickable {
             favoritesActive: false
             hideBottomLabel: true
             showDividers: categoryGrid.showDividers
+            showTooltips: categoryGrid.showTooltips
             onRecentLaunched: function(storageId) { categoryGrid.recentLaunched(storageId) }
             onContextMenuRequested: function(storageId, desktopFile) {
                 categoryGrid.contextMenuRequested(-1, storageId, desktopFile)
@@ -250,6 +252,9 @@ Flickable {
                                 anchors.fill: parent
                                 appName: modelData.name || ""
                                 appIcon: modelData.iconName || "application-x-executable"
+                                appComment: modelData.comment || ""
+                                installSource: modelData.installSource || ""
+                                showTooltip: categoryGrid.showTooltips
                                 iconSize: categoryGrid.iconSize
                                 isCurrentItem: categoryGrid.currentIndex === parent.flatIndex
                                 onClicked: function(mouse) {

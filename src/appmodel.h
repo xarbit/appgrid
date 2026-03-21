@@ -18,6 +18,8 @@ struct AppEntry {
     QString genericName;
     QString storageId;
     QStringList keywords;
+    QString comment;
+    QString installSource;
 };
 
 /**
@@ -39,6 +41,8 @@ public:
         GenericNameRole,
         StorageIdRole,
         KeywordsRole,
+        CommentRole,
+        InstallSourceRole,
     };
 
     explicit AppModel(QObject *parent = nullptr);

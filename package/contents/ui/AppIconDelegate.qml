@@ -17,6 +17,9 @@ Item {
     property string appName: ""
     property string appIcon: "application-x-executable"
     property string appGenericName: ""
+    property string appComment: ""
+    property string installSource: ""
+    property bool showTooltip: false
     property bool isCurrentItem: false
     property bool isNew: false
     property real iconSize: Kirigami.Units.iconSizes.huge
@@ -144,6 +147,22 @@ Item {
         border.color: Kirigami.Theme.highlightColor
         visible: root.isSelected
     }
+
+    // Tooltip with app name, generic name, and install source
+    readonly property string tooltipText: {
+        var parts = []
+        if (root.appComment)
+            parts.push(root.appComment)
+        else if (root.appGenericName && root.appGenericName !== root.appName)
+            parts.push(root.appGenericName)
+        if (root.installSource.length > 0)
+            parts.push("Source: " + root.installSource)
+        return parts.join("\n")
+    }
+
+    PlasmaComponents.ToolTip.text: root.tooltipText
+    PlasmaComponents.ToolTip.visible: root.showTooltip && delegateMouse.containsMouse && !root.editMode
+    PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
 
     MouseArea {
         id: delegateMouse

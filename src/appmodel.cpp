@@ -188,6 +188,10 @@ QVariant AppModel::data(const QModelIndex &index, int role) const
         return app.storageId;
     case KeywordsRole:
         return app.keywords;
+    case CommentRole:
+        return app.comment;
+    case InstallSourceRole:
+        return app.installSource;
     }
     return {};
 }
@@ -203,6 +207,8 @@ QHash<int, QByteArray> AppModel::roleNames() const
         {GenericNameRole, "genericName"},
         {StorageIdRole, "storageId"},
         {KeywordsRole, "keywords"},
+        {CommentRole, "comment"},
+        {InstallSourceRole, "installSource"},
     };
 }
 
@@ -333,6 +339,21 @@ void AppModel::loadApplications()
             appEntry.genericName = service->genericName();
             appEntry.storageId = storageId;
             appEntry.keywords = service->keywords();
+            appEntry.comment = service->comment();
+
+            // Detect install source from exec line and desktop file path
+            const auto exec = service->exec();
+            const auto path = service->entryPath();
+            if (exec.contains(QLatin1String("--app=")) || exec.contains(QLatin1String("--app-id=")))
+                appEntry.installSource = QStringLiteral("Web App");
+            else if (path.contains(QLatin1String("flatpak")))
+                appEntry.installSource = QStringLiteral("Flatpak");
+            else if (path.contains(QLatin1String("snap")))
+                appEntry.installSource = QStringLiteral("Snap");
+            else if (exec.contains(QLatin1String("appimage"), Qt::CaseInsensitive))
+                appEntry.installSource = QStringLiteral("AppImage");
+            else if (path.startsWith(QLatin1String("/usr/")) || path.startsWith(QLatin1String("/opt/")))
+                appEntry.installSource = QStringLiteral("System");
 
             if (systemMode) {
                 auto cat = category.isEmpty() ? QStringLiteral("Other") : category;

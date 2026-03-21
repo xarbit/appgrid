@@ -22,6 +22,7 @@ Column {
     property bool favoritesActive: false
     property bool hideBottomLabel: false
     property bool showDividers: true
+    property bool showTooltips: true
 
     signal recentLaunched(string storageId)
     signal contextMenuRequested(string storageId, string desktopFile)
@@ -70,6 +71,10 @@ Column {
                     anchors.fill: parent
                     appName: recentDelegate.appData.name || ""
                     appIcon: recentDelegate.appData.iconName || "application-x-executable"
+                    appGenericName: recentDelegate.appData.genericName || ""
+                    appComment: recentDelegate.appData.comment || ""
+                    installSource: recentDelegate.appData.installSource || ""
+                    showTooltip: recentHeader.showTooltips
                     isCurrentItem: recentHeader.currentRecentIndex === recentDelegate.index
                     iconSize: recentHeader.iconSize
                     onClicked: function(mouse) {

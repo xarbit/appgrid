@@ -30,6 +30,7 @@ KCMUtils.SimpleKCM {
     property alias cfg_cornerRadius: cornerRadius.value
     property alias cfg_showDividers: showDividers.checked
     property alias cfg_showScrollbars: showScrollbars.checked
+    property alias cfg_showTooltips: showTooltips.checked
     property alias cfg_backgroundOpacity: backgroundOpacity.value
     property alias cfg_openAnimation: openAnimation.currentIndex
     property alias cfg_enableBlur: enableBlur.checked
@@ -260,6 +261,11 @@ KCMUtils.SimpleKCM {
             text: i18nd("dev.xarbit.appgrid", "Show scrollbars")
         }
 
+        QQC2.CheckBox {
+            id: showTooltips
+            text: i18nd("dev.xarbit.appgrid", "Show tooltips on hover")
+        }
+
         QQC2.ComboBox {
             id: openAnimation
             Kirigami.FormData.label: i18nd("dev.xarbit.appgrid", "Open/close animation:")
@@ -366,6 +372,7 @@ KCMUtils.SimpleKCM {
                 cornerRadius.value = 24
                 showDividers.checked = true
                 showScrollbars.checked = false
+                showTooltips.checked = true
                 backgroundOpacity.value = 85
                 openAnimation.currentIndex = 2
                 enableBlur.checked = true

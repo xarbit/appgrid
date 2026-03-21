@@ -166,6 +166,7 @@ GridView {
     property bool startWithFavorites: false
     property bool favoritesActive: false
     property bool showDividers: true
+    property bool showTooltips: true
 
     // Show recently used apps in the grid header.
     //
@@ -294,6 +295,7 @@ GridView {
         gridHasFocus: gridView.activeFocus
         favoritesActive: gridView.favoritesActive
         showDividers: gridView.showDividers
+        showTooltips: gridView.showTooltips
         onRecentLaunched: function(storageId) { gridView.recentLaunched(storageId) }
         onContextMenuRequested: function(storageId, desktopFile) {
             gridView.contextMenuRequested(-1, storageId, desktopFile)
@@ -334,6 +336,9 @@ GridView {
             appIcon: model.iconName || "application-x-executable"
             displayIcon: gridView.getDisplayIcon(model.index)
             appGenericName: model.genericName || ""
+            appComment: model.comment || ""
+            installSource: model.installSource || ""
+            showTooltip: gridView.showTooltips
             isCurrentItem: gridView.currentIndex === model.index
             iconSize: gridView.iconSize
             isNew: gridView.appsModel ? gridView.appsModel.isNewApp(model.storageId || "") : false

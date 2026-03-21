@@ -401,6 +401,8 @@ QVariantList AppFilterModel::appsByCategory() const
         app[QStringLiteral("iconName")] = idx.data(AppModel::IconRole);
         app[QStringLiteral("storageId")] = idx.data(AppModel::StorageIdRole);
         app[QStringLiteral("desktopFile")] = idx.data(AppModel::DesktopFileRole);
+        app[QStringLiteral("comment")] = idx.data(AppModel::CommentRole);
+        app[QStringLiteral("installSource")] = idx.data(AppModel::InstallSourceRole);
         app[QStringLiteral("proxyIndex")] = i;
 
         for (const auto &cat : cats)
@@ -462,6 +464,8 @@ QVariantMap AppFilterModel::getByStorageId(const QString &storageId) const
             map[QStringLiteral("desktopFile")] = idx.data(AppModel::DesktopFileRole);
             map[QStringLiteral("storageId")] = idx.data(AppModel::StorageIdRole);
             map[QStringLiteral("genericName")] = idx.data(AppModel::GenericNameRole);
+            map[QStringLiteral("comment")] = idx.data(AppModel::CommentRole);
+            map[QStringLiteral("installSource")] = idx.data(AppModel::InstallSourceRole);
             break;
         }
     }

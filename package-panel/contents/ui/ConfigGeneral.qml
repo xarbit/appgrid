@@ -25,6 +25,7 @@ KCMUtils.SimpleKCM {
     property alias cfg_sortMode: sortMode.currentIndex
     property alias cfg_showDividers: showDividers.checked
     property alias cfg_showScrollbars: showScrollbars.checked
+    property alias cfg_showTooltips: showTooltips.checked
     property alias cfg_showCategoryBar: showCategoryBar.checked
     property alias cfg_searchAll: searchAll.checked
     property alias cfg_startWithFavorites: startWithFavorites.checked
@@ -236,6 +237,11 @@ KCMUtils.SimpleKCM {
             text: i18nd("dev.xarbit.appgrid", "Show scrollbars")
         }
 
+        QQC2.CheckBox {
+            id: showTooltips
+            text: i18nd("dev.xarbit.appgrid", "Show tooltips on hover")
+        }
+
         QQC2.ComboBox {
             id: hoverAnimation
             Kirigami.FormData.label: i18nd("dev.xarbit.appgrid", "Icon animation:")
@@ -275,6 +281,7 @@ KCMUtils.SimpleKCM {
                 sortMode.currentIndex = 1
                 showDividers.checked = false
                 showScrollbars.checked = false
+                showTooltips.checked = true
                 showCategoryBar.checked = true
                 searchAll.checked = true
                 startWithFavorites.checked = false

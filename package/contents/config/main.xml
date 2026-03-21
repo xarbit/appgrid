@@ -54,6 +54,10 @@
       <label>Whether to dim the screen behind the launcher overlay.</label>
       <default>false</default>
     </entry>
+    <entry name="showTooltips" type="Bool">
+      <label>Whether to show tooltips on app icon hover.</label>
+      <default>true</default>
+    </entry>
     <entry name="shakeOnOpen" type="Bool">
       <label>Whether to shake all icons when the grid opens.</label>
       <default>true</default>
