@@ -683,11 +683,15 @@ QVariant UnifiedSearchModel::data(const QModelIndex &index, int role) const
         switch (role) {
         case NameRole:        return srcIdx.data(AppModel::NameRole);
         case IconRole:        return srcIdx.data(AppModel::IconRole);
-        case SubtextRole:     return srcIdx.data(AppModel::GenericNameRole);
+        case SubtextRole: {
+            auto comment = srcIdx.data(AppModel::CommentRole).toString();
+            return comment.isEmpty() ? srcIdx.data(AppModel::GenericNameRole) : comment;
+        }
         case CategoryRole:    return srcIdx.data(AppModel::CategoryRole);
         case StorageIdRole:   return srcIdx.data(AppModel::StorageIdRole);
         case DesktopFileRole: return srcIdx.data(AppModel::DesktopFileRole);
         case IsNewRole:       return m_appModel->isNewApp(srcIdx.data(AppModel::StorageIdRole).toString());
+        case InstallSourceRole: return srcIdx.data(AppModel::InstallSourceRole);
         }
     } else {
         const int runnerRow = row - ac;
@@ -712,6 +716,7 @@ QVariant UnifiedSearchModel::data(const QModelIndex &index, int role) const
             return QString();
         }
         case IsNewRole:       return false;
+        case InstallSourceRole: return QString();
         }
     }
     return {};
@@ -731,5 +736,6 @@ QHash<int, QByteArray> UnifiedSearchModel::roleNames() const
         {ShortcutNumberRole, "shortcutNumber"},
         {IsSectionBoundaryRole, "isSectionBoundary"},
         {SourceIndexRole, "sourceIndex"},
+        {InstallSourceRole, "installSource"},
     };
 }

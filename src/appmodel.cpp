@@ -13,6 +13,8 @@
 #include <KIO/ApplicationLauncherJob>
 #include <KJob>
 
+#include <QStandardPaths>
+
 #include <QCollator>
 #include <algorithm>
 
@@ -341,18 +343,19 @@ void AppModel::loadApplications()
             appEntry.keywords = service->keywords();
             appEntry.comment = service->comment();
 
-            // Detect install source from exec line and desktop file path
+            // Detect install source from exec line, resolved path, and storage ID
             const auto exec = service->exec();
-            const auto path = service->entryPath();
+            const auto resolvedPath = QStandardPaths::locate(
+                QStandardPaths::ApplicationsLocation, service->entryPath());
             if (exec.contains(QLatin1String("--app=")) || exec.contains(QLatin1String("--app-id=")))
                 appEntry.installSource = QStringLiteral("Web App");
-            else if (path.contains(QLatin1String("flatpak")))
+            else if (exec.contains(QLatin1String("flatpak")) || resolvedPath.contains(QLatin1String("flatpak")))
                 appEntry.installSource = QStringLiteral("Flatpak");
-            else if (path.contains(QLatin1String("snap")))
+            else if (exec.contains(QLatin1String("/snap/")) || resolvedPath.contains(QLatin1String("snap")))
                 appEntry.installSource = QStringLiteral("Snap");
             else if (exec.contains(QLatin1String("appimage"), Qt::CaseInsensitive))
                 appEntry.installSource = QStringLiteral("AppImage");
-            else if (path.startsWith(QLatin1String("/usr/")) || path.startsWith(QLatin1String("/opt/")))
+            else
                 appEntry.installSource = QStringLiteral("System");
 
             if (systemMode) {

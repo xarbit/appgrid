@@ -301,6 +301,13 @@ bool AppFilterModel::filterAcceptsRow(int sourceRow, const QModelIndex &sourcePa
             }
         }
 
+        // Check install source (e.g. "flatpak" finds all Flatpak apps)
+        if (!matched) {
+            const auto source = idx.data(AppModel::InstallSourceRole).toString();
+            if (source.contains(m_searchText, Qt::CaseInsensitive))
+                matched = true;
+        }
+
         if (!matched)
             return false;
     }

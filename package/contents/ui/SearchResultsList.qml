@@ -152,6 +152,24 @@ ListView {
                                    : Kirigami.Theme.textColor
                         }
                         Rectangle {
+                            visible: model.installSource !== undefined && model.installSource.length > 0 && model.installSource !== "System"
+                            implicitWidth: sourceLabel.implicitWidth + Kirigami.Units.smallSpacing * 2
+                            implicitHeight: sourceLabel.implicitHeight + Kirigami.Units.smallSpacing
+                            radius: Kirigami.Units.cornerRadius
+                            color: Qt.rgba(Kirigami.Theme.textColor.r,
+                                           Kirigami.Theme.textColor.g,
+                                           Kirigami.Theme.textColor.b, 0.08)
+
+                            PlasmaComponents.Label {
+                                id: sourceLabel
+                                anchors.centerIn: parent
+                                text: model.installSource || ""
+                                font: Kirigami.Theme.smallFont
+                                opacity: 0.6
+                            }
+                        }
+
+                        Rectangle {
                             implicitWidth: typeLabel.implicitWidth + Kirigami.Units.smallSpacing * 2
                             implicitHeight: typeLabel.implicitHeight + Kirigami.Units.smallSpacing
                             radius: Kirigami.Units.cornerRadius

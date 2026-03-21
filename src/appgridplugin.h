@@ -59,6 +59,7 @@ public:
         ShortcutNumberRole,
         IsSectionBoundaryRole,
         SourceIndexRole,
+        InstallSourceRole,
     };
     Q_ENUM(Roles)
 
