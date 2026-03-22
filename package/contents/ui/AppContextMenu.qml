@@ -14,7 +14,9 @@ PlasmaComponents.Menu {
     id: contextMenu
 
     Kicker.ProcessRunner { id: processRunner }
+    Kicker.ContainmentInterface { id: containmentInterface }
 
+    property var appletInterface: null
     property var appsModel: null
 
     property int popupIndex: -1
@@ -66,7 +68,7 @@ PlasmaComponents.Menu {
     PlasmaComponents.MenuItem {
         icon.name: "pin"
         text: i18nd("dev.xarbit.appgrid", "Pin to Task Manager")
-        onClicked: Plasmoid.pinToTaskManager(contextMenu.popupStorageId)
+        onClicked: containmentInterface.addLauncher(contextMenu.appletInterface, Kicker.ContainmentInterface.TaskManager, contextMenu.popupDesktopFile)
         Accessible.name: i18nd("dev.xarbit.appgrid", "Pin to Task Manager")
         Accessible.role: Accessible.MenuItem
     }
@@ -74,7 +76,7 @@ PlasmaComponents.Menu {
     PlasmaComponents.MenuItem {
         icon.name: "desktop"
         text: i18nd("dev.xarbit.appgrid", "Add to Desktop")
-        onClicked: Plasmoid.addToDesktop(contextMenu.popupDesktopFile)
+        onClicked: containmentInterface.addLauncher(contextMenu.appletInterface, Kicker.ContainmentInterface.Desktop, contextMenu.popupDesktopFile)
         Accessible.name: i18nd("dev.xarbit.appgrid", "Add to Desktop")
         Accessible.role: Accessible.MenuItem
     }

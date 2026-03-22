@@ -151,14 +151,6 @@ public:
     /** List directory contents at @p path. Returns a list of {name, path, isDir, icon}. */
     Q_INVOKABLE QVariantList listDirectory(const QString &path);
 
-    // --- Desktop integration ---
-
-    /** Pin an application to the task manager by its @p storageId. */
-    Q_INVOKABLE void pinToTaskManager(const QString &storageId);
-
-    /** Add an application shortcut to the desktop by its @p desktopFile path. */
-    Q_INVOKABLE void addToDesktop(const QString &desktopFile);
-
     // --- System info ---
 
     /** Returns system/environment info for issue reporting. */

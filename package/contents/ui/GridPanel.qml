@@ -16,6 +16,7 @@ Kirigami.ShadowedRectangle {
     id: panel
 
     signal closeRequested()
+    property var appletInterface: null
 
     function shakeAllIcons() {
         appGrid.shakeAllIcons()
@@ -627,5 +628,6 @@ Kirigami.ShadowedRectangle {
     AppContextMenu {
         id: contextMenu
         appsModel: panel.appsModel
+        appletInterface: panel.appletInterface
     }
 }

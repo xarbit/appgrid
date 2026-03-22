@@ -33,6 +33,7 @@ PlasmoidItem {
         GridPanel {
             id: panel
             nativePopup: true
+            appletInterface: kicker
             opacity: 1.0
             onCloseRequested: kicker.expanded = false
 

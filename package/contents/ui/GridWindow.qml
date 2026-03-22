@@ -250,6 +250,7 @@ Window {
         anchors.centerIn: parent
         opacity: 0.0
         transformOrigin: Item.Center
+        appletInterface: root.appletInterface
         onCloseRequested: {
             if (root.appletInterface)
                 root.appletInterface.closeWindow()

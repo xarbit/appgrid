@@ -18,9 +18,7 @@
 #include <LayerShellQt/window.h>
 #include <plasma_version.h>
 #include <Plasma/Containment>
-#include <Plasma/Corona>
 #include <PlasmaQuick/AppletQuickItem>
-#include <algorithm>
 #include <QDir>
 #include <QCursor>
 #include <QGuiApplication>
@@ -36,12 +34,6 @@
 #include <QWindow>
 
 // Known task manager plugin IDs, matching the list used by Kicker.
-static constexpr QLatin1StringView s_knownTaskManagers[] = {
-    QLatin1StringView("org.kde.plasma.taskmanager"),
-    QLatin1StringView("org.kde.plasma.icontasks"),
-    QLatin1StringView("org.kde.plasma.expandingiconstaskmanager"),
-};
-
 AppGridPlugin::AppGridPlugin(QObject *parent, const KPluginMetaData &data, const QVariantList &args)
     : Plasma::Applet(parent, data, args)
 {
@@ -384,75 +376,6 @@ QVariantList AppGridPlugin::listDirectory(const QString &path)
             break;
     }
     return result;
-}
-
-// --- Desktop integration ---
-
-
-void AppGridPlugin::pinToTaskManager(const QString &storageId)
-{
-    Plasma::Containment *panel = containment();
-    if (!panel)
-        return;
-
-    // Find a task manager applet in the panel containment.
-    Plasma::Applet *taskManager = nullptr;
-    const auto applets = panel->applets();
-    for (auto *applet : applets) {
-        const auto pluginId = applet->pluginMetaData().pluginId();
-        const bool found = std::any_of(std::begin(s_knownTaskManagers), std::end(s_knownTaskManagers),
-                                       [&pluginId](const auto &id) { return id == pluginId; });
-        if (found) {
-            taskManager = applet;
-            break;
-        }
-    }
-    if (!taskManager)
-        return;
-
-    auto *quickItem = PlasmaQuick::AppletQuickItem::itemForApplet(taskManager);
-    if (!quickItem)
-        return;
-
-    const QUrl launcherUrl(QStringLiteral("applications:") + storageId);
-    QMetaObject::invokeMethod(quickItem, "addLauncher", Q_ARG(QUrl, launcherUrl));
-}
-
-void AppGridPlugin::addToDesktop(const QString &desktopFile)
-{
-    Plasma::Containment *panel = containment();
-    if (!panel)
-        return;
-
-    Plasma::Corona *corona = panel->corona();
-    if (!corona)
-        return;
-
-    Plasma::Containment *desktop = corona->containmentForScreen(panel->screen(), QString(), QString());
-    if (!desktop)
-        return;
-
-    // Resolve to an absolute path if KService returned a relative one.
-    QString absPath = desktopFile;
-    if (!QFileInfo(absPath).isAbsolute()) {
-        const QString resolved = QStandardPaths::locate(
-            QStandardPaths::ApplicationsLocation, QFileInfo(desktopFile).fileName());
-        if (!resolved.isEmpty())
-            absPath = resolved;
-    }
-
-    const QStringList provides = desktop->pluginMetaData().value(
-        QStringLiteral("X-Plasma-Provides"), QStringList());
-
-    if (provides.contains(QStringLiteral("org.kde.plasma.filemanagement"))) {
-        auto *folderItem = PlasmaQuick::AppletQuickItem::itemForApplet(desktop);
-        if (folderItem)
-            QMetaObject::invokeMethod(folderItem, "addLauncher",
-                                      Q_ARG(QVariant, QUrl::fromLocalFile(absPath)));
-    } else {
-        desktop->createApplet(QStringLiteral("org.kde.plasma.icon"),
-                              QVariantList() << QUrl::fromLocalFile(absPath));
-    }
 }
 
 // --- System info ---
