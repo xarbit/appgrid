@@ -106,9 +106,9 @@ KDE Plasma ships with Kickoff and Kicker as its default application launchers. W
 
 Pre-built packages for Fedora, Ubuntu, and Debian are available on the [Releases](https://github.com/xarbit/plasma6-applet-appgrid/releases) page. These are auto-generated and provided as is — I'm not a packager, and they may not follow all distro packaging standards. Ideally, distribution maintainers would pick up AppGrid for their official repositories. If you're a packager and want to maintain AppGrid for your distro, please reach out so I can link to your package and eventually retire these from the CI pipeline. openSUSE packages are available via the community-maintained OBS package (see below).
 
-### Arch Linux (AUR) — officially supported
+### Arch Linux & derivatives (AUR) — officially supported
 
-The AUR package is maintained by the author and is the only officially supported package at this time.
+The AUR package is maintained by the author and works on Arch Linux and Arch-based distributions such as EndeavourOS, CachyOS, Manjaro, and Garuda.
 
 ```bash
 yay -S plasma6-applets-appgrid
