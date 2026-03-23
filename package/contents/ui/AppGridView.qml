@@ -16,9 +16,31 @@ GridView {
     // Number of columns to display. If adaptiveColumns is true, computed from width.
     property int columns: 6
     property bool adaptiveColumns: false
-    readonly property int effectiveColumns: adaptiveColumns
+
+    // Internal target column count — updated immediately from width.
+    readonly property int _targetColumns: adaptiveColumns
         ? Math.max(3, Math.floor(width / (iconSize + Kirigami.Units.gridUnit * 2 + Kirigami.Units.smallSpacing * 2)))
         : columns
+
+    // Debounce column-count changes during resize to prevent jarring snaps.
+    // The column count only updates after the user pauses resizing.
+    property int effectiveColumns: _targetColumns
+
+    Timer {
+        id: columnSnapTimer
+        interval: 150
+        onTriggered: gridView.effectiveColumns = gridView._targetColumns
+    }
+
+    onWidthChanged: {
+        if (adaptiveColumns && effectiveColumns !== _targetColumns)
+            columnSnapTimer.restart()
+    }
+
+    on_TargetColumnsChanged: {
+        if (!adaptiveColumns)
+            effectiveColumns = _targetColumns
+    }
 
     // Icon size from configuration (Kirigami pixel size).
     property real iconSize: Kirigami.Units.iconSizes.huge
@@ -137,7 +159,8 @@ GridView {
 
     clip: true
     cacheBuffer: Kirigami.Units.gridUnit * 4
-    cellWidth: Math.floor(width / effectiveColumns)
+    pixelAligned: true
+    cellWidth: width / effectiveColumns
     cellHeight: iconSize
                + Kirigami.Units.gridUnit * 2
                + Kirigami.Units.smallSpacing * 2
