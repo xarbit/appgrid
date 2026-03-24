@@ -66,22 +66,23 @@ Item {
         }
     }
 
-    // Fixed content width based on icon size — independent of cell width.
-    // The cell stretches during resize but the content block stays centered
-    // at a constant width, preventing text label shimmer from relayout.
-    readonly property real contentWidth: iconSize + Kirigami.Units.gridUnit * 2
+    // Icon and label are anchored together as a unit.
+    // The icon is centered in the cell, the label is anchored directly
+    // below it with a fixed width matching the icon. Both move as one
+    // during resize — no independent repositioning or text relayout.
 
-    ColumnLayout {
+    Item {
         id: contentLayout
-        anchors.centerIn: parent
-        width: root.contentWidth
-        height: parent.height - Kirigami.Units.smallSpacing * 2
-        spacing: Kirigami.Units.smallSpacing
+
+        anchors.fill: parent
+        anchors.margins: Kirigami.Units.smallSpacing
 
         Item {
-            Layout.alignment: Qt.AlignTop | Qt.AlignHCenter
-            implicitWidth: root.iconSize
-            implicitHeight: root.iconSize
+            id: iconContainer
+            width: root.iconSize
+            height: root.iconSize
+            anchors.top: parent.top
+            anchors.horizontalCenter: parent.horizontalCenter
 
             Kirigami.Icon {
                 id: delegateIcon
@@ -108,8 +109,11 @@ Item {
         }
 
         PlasmaComponents.Label {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
+            anchors.top: iconContainer.bottom
+            anchors.topMargin: Kirigami.Units.smallSpacing
+            anchors.bottom: parent.bottom
+            anchors.horizontalCenter: iconContainer.horizontalCenter
+            width: root.iconSize + Kirigami.Units.gridUnit * 2
             verticalAlignment: Text.AlignTop
             text: root.appName
             font: Kirigami.Theme.defaultFont
