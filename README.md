@@ -1,5 +1,7 @@
 # AppGrid - KDE Plasma 6 Application Launcher
 
+> **WARNING:** This project is still in early development and will likely break. Features may be added or removed. If you encounter issues, please report them at [GitHub Issues](https://github.com/xarbit/plasma6-applet-appgrid/issues).
+
 A modern application launcher for KDE Plasma, inspired by macOS Launchpad, COSMIC, and Pantheon.
 
 ## Table of Contents
