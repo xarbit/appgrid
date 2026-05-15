@@ -189,6 +189,10 @@ Item {
             root.clicked(mouse)
         }
 
+        onPressAndHold: function(mouse) {
+            root.clicked({ button: Qt.RightButton, x: mouse.x, y: mouse.y })
+        }
+
         Accessible.name: root.appName + (root.isNew ? ", " + i18nd("dev.xarbit.appgrid", "new") : "")
         Accessible.role: Accessible.Button
         Accessible.description: root.appGenericName
