@@ -133,19 +133,6 @@ bool AppFilterModel::isFavorite(const QString &storageId) const
     return m_favoriteApps.contains(storageId);
 }
 
-void AppFilterModel::toggleFavorite(const QString &storageId)
-{
-    if (storageId.isEmpty())
-        return;
-    if (m_favoriteApps.contains(storageId))
-        m_favoriteApps.removeAll(storageId);
-    else
-        m_favoriteApps.append(storageId);
-    if (m_showFavoritesOnly)
-        APPGRID_INVALIDATE_FILTER();
-    emit favoriteAppsChanged();
-}
-
 QStringList AppFilterModel::recentApps() const { return m_recentApps; }
 
 void AppFilterModel::setRecentApps(const QStringList &list)
@@ -588,33 +575,6 @@ QVariantMap AppFilterModel::get(int proxyRow) const
     for (auto it = roles.cbegin(); it != roles.cend(); ++it)
         map.insert(QString::fromUtf8(it.value()), idx.data(it.key()));
     return map;
-}
-
-// --- Favorites reordering ---
-
-void AppFilterModel::moveFavorite(const QString &storageId, int toIndex)
-{
-    if (!m_favoriteApps.contains(storageId))
-        return;
-    m_favoriteApps.removeAll(storageId);
-    if (toIndex < 0) toIndex = 0;
-    if (toIndex > m_favoriteApps.size()) toIndex = m_favoriteApps.size();
-    m_favoriteApps.insert(toIndex, storageId);
-    invalidate();
-    emit favoriteAppsChanged();
-}
-
-void AppFilterModel::swapFavorites(const QString &leftStorageId, const QString &rightStorageId)
-{
-    if (leftStorageId == rightStorageId)
-        return;
-    const int li = m_favoriteApps.indexOf(leftStorageId);
-    const int ri = m_favoriteApps.indexOf(rightStorageId);
-    if (li < 0 || ri < 0)
-        return;
-    m_favoriteApps.swapItemsAt(li, ri);
-    invalidate();
-    emit favoriteAppsChanged();
 }
 
 bool AppFilterModel::sortFavoritesAlphabetically() const { return m_sortFavoritesAlphabetically; }

@@ -74,6 +74,10 @@
       <label>Whether to hide app name labels on the favorites tab.</label>
       <default>false</default>
     </entry>
+    <entry name="favoritesPortedToKAstats" type="Bool">
+      <label>Whether existing local favorites have been migrated into the KActivities-backed favorites model.</label>
+      <default>false</default>
+    </entry>
     <entry name="shakeOnOpen" type="Bool">
       <label>Whether to shake all icons when the grid opens.</label>
       <default>true</default>

@@ -18,6 +18,7 @@ PlasmaComponents.Menu {
 
     property var appletInterface: null
     property var appsModel: null
+    property var sharedFavoritesModel: null
 
     property int popupIndex: -1
     property string popupStorageId: ""
@@ -30,7 +31,10 @@ PlasmaComponents.Menu {
         popupIndex = index
         popupStorageId = storageId
         popupDesktopFile = desktopFile
-        popupIsFavorite = appsModel ? appsModel.isFavorite(storageId) : false
+        const prefixed = storageId.indexOf(":") >= 0 ? storageId : "applications:" + storageId
+        popupIsFavorite = sharedFavoritesModel
+                          ? sharedFavoritesModel.isFavorite(prefixed)
+                          : false
         popupActions = Plasmoid.appActions(storageId) || []
         popup()
     }
@@ -54,9 +58,14 @@ PlasmaComponents.Menu {
         icon.name: contextMenu.popupIsFavorite ? "bookmark-remove" : "bookmark-new"
         text: contextMenu.popupIsFavorite ? i18nd("dev.xarbit.appgrid", "Remove from Favorites") : i18nd("dev.xarbit.appgrid", "Add to Favorites")
         onClicked: {
-            if (contextMenu.appsModel) {
-                contextMenu.appsModel.toggleFavorite(contextMenu.popupStorageId)
-                Plasmoid.configuration.favoriteApps = contextMenu.appsModel.favoriteApps
+            const sid = contextMenu.popupStorageId
+            if (!sid) return
+            if (contextMenu.sharedFavoritesModel) {
+                const prefixed = sid.indexOf(":") >= 0 ? sid : "applications:" + sid
+                if (contextMenu.sharedFavoritesModel.isFavorite(prefixed))
+                    contextMenu.sharedFavoritesModel.removeFavorite(prefixed)
+                else
+                    contextMenu.sharedFavoritesModel.addFavorite(prefixed)
             }
         }
         Accessible.name: text

@@ -145,7 +145,8 @@ Kirigami.ShadowedRectangle {
     function syncModelFromConfig() {
         if (!appsModel) return
         appsModel.hiddenApps = Plasmoid.configuration.hiddenApps || []
-        appsModel.favoriteApps = Plasmoid.configuration.favoriteApps || []
+        // Favorites are loaded from KAStatsFavoritesModel after migration —
+        // see sharedFavoritesLoader.onStatusChanged.
         appsModel.maxRecentApps = columns
         appsModel.sortMode = sortMode
         appsModel.useSystemCategories = Plasmoid.configuration.useSystemCategories !== false
@@ -173,6 +174,114 @@ Kirigami.ShadowedRectangle {
             Plasmoid.configuration.knownApps = panel.appsModel.knownApps
         }
     }
+
+    // -- KActivities-backed favorites (always the source of truth) --
+    // SharedFavoritesProvider.qml isolates the org.kde.plasma.private.kicker
+    // import so a missing Kicker plugin is logged rather than crashing.
+    Loader {
+        id: sharedFavoritesLoader
+        active: true
+        source: "SharedFavoritesProvider.qml"
+        onStatusChanged: {
+            if (status === Loader.Error) {
+                console.warn("AppGrid: org.kde.plasma.private.kicker plugin missing — favorites disabled")
+                return
+            }
+            if (status === Loader.Ready && item) {
+                item.initForClient("dev.xarbit.appgrid.favorites.instance-" + Plasmoid.id)
+                // Migration + initial mirror are deferred until the model is
+                // 'enabled' — KAStats only honours portOldFavorites once
+                // kactivitymanagerd has finished initialising. See Connections
+                // block below.
+                if (item.enabled) {
+                    panel._maybeMigrateAndMirror()
+                }
+            }
+        }
+    }
+
+    // Called after KAStatsFavoritesModel.enabled flips true, OR immediately
+    // if it was already true at load time. Idempotent and self-healing:
+    // if a prior migration attempt set the flag without actually populating
+    // KAStats (e.g. attempted while the model was disabled), this retries
+    // when both the model is empty AND the local backup still has entries.
+    // Migration entry point. Idempotent and self-healing: as long as KAStats
+    // holds fewer entries than the local backup, we (re)issue portOldFavorites.
+    // The model finishes loading on a 500ms timer internally; the QAbstractItemModel
+    // signals below pick that up and call _mirrorFavorites again.
+    function _maybeMigrateAndMirror() {
+        const item = sharedFavoritesLoader.item
+        if (!item) return
+        const local = Plasmoid.configuration.favoriteApps || []
+        if (item.count < local.length && local.length > 0) {
+            // Prefix with "applications:" to match Kickoff/Kicker storage
+            // convention. portOldFavorites is the only write path that
+            // actually persists — setFavorites is a no-op upstream.
+            const prefixed = local.map(function(id) {
+                return id.indexOf(":") >= 0 ? id : "applications:" + id
+            })
+            item.portOldFavorites(prefixed)
+        }
+        panel._mirrorFavorites()
+    }
+
+    // KAStatsFavoritesModel's `favorites` property is a no-op in upstream Kicker
+    // ("returns nothing, it is here just to keep the API backwards-compatible"),
+    // so we read favoriteIds row-by-row instead. AppFilterModel matches against
+    // bare storage IDs, so strip the "applications:" scheme prefix when present.
+    readonly property int _favoriteIdRole: 259 // Kicker::FavoriteIdRole = Qt.UserRole + 3
+    function _mirrorFavorites() {
+        if (!panel.appsModel || !panel.sharedFavoritesModel) return
+        const model = panel.sharedFavoritesModel
+        const ids = []
+        for (let i = 0; i < model.count; ++i) {
+            let id = model.data(model.index(i, 0), _favoriteIdRole)
+            if (!id) continue
+            if (id.startsWith && id.startsWith("applications:"))
+                id = id.substring(13)
+            ids.push(id)
+        }
+        panel.appsModel.favoriteApps = ids
+    }
+
+    Connections {
+        target: sharedFavoritesLoader.item
+        ignoreUnknownSignals: true
+        function onEnabledChanged() {
+            if (sharedFavoritesLoader.item && sharedFavoritesLoader.item.enabled)
+                panel._maybeMigrateAndMirror()
+        }
+    }
+
+    readonly property var sharedFavoritesModel: sharedFavoritesLoader.item
+
+    // Mirror shared model into proxy model so the grid view updates.
+    // KAStatsFavoritesModel does not emit `favoritesChanged` despite the
+    // Q_PROPERTY declaration — upstream Kicker leaves it as a stub. Use the
+    // QAbstractItemModel signals which are emitted on every change.
+    // KAStatsFavoritesModel does not emit `favoritesChanged` despite the
+    // Q_PROPERTY declaration — upstream Kicker leaves it as a stub. We listen
+    // to QAbstractItemModel signals instead, which fire on every change.
+    Connections {
+        target: panel.sharedFavoritesModel
+        ignoreUnknownSignals: true
+        function _onChanged() {
+            // Finalise migration once KAStats actually has entries.
+            if (!Plasmoid.configuration.favoritesPortedToKAstats
+                    && panel.sharedFavoritesModel
+                    && panel.sharedFavoritesModel.count > 0) {
+                Plasmoid.configuration.favoritesPortedToKAstats = true
+            }
+            panel._mirrorFavorites()
+        }
+        function onRowsInserted() { _onChanged() }
+        function onRowsRemoved() { _onChanged() }
+        function onRowsMoved() { _onChanged() }
+        function onModelReset() { _onChanged() }
+        function onLayoutChanged() { _onChanged() }
+        function onDataChanged() { _onChanged() }
+    }
+
 
     // -- Reset state (called when showing the grid) --
     function resetState() {
@@ -526,6 +635,7 @@ Kirigami.ShadowedRectangle {
                     id: appGrid
                     model: !panel.isSearching ? panel.appsModel : null
                     appsModel: panel.appsModel
+                    sharedFavoritesModel: panel.sharedFavoritesModel
                     columns: panel.columns
                     adaptiveColumns: panel.nativePopup
                     iconSize: panel.gridIconSize
@@ -559,8 +669,7 @@ Kirigami.ShadowedRectangle {
                         shuffleOverlay.startAnim(fromX, fromY, toX, toY, fromIcon, toIcon, fromIndex, toIndex)
                     }
                     onFavoritesOrderChanged: {
-                        if (panel.appsModel)
-                            Plasmoid.configuration.favoriteApps = panel.appsModel.favoriteApps
+                        // KAStats backend persists itself; nothing to do here.
                     }
                 }
             }
@@ -635,6 +744,7 @@ Kirigami.ShadowedRectangle {
     AppContextMenu {
         id: contextMenu
         appsModel: panel.appsModel
+        sharedFavoritesModel: panel.sharedFavoritesModel
         appletInterface: panel.appletInterface
     }
 }

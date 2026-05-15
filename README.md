@@ -231,6 +231,15 @@ AppGrid uses a C++ backend for app discovery, window management, blur effects, a
 
 Switch to the favorites tab, then click the edit button (pencil icon) in the bottom-right corner. Icons will start wiggling. Click an icon to select it, then click another to swap their positions. You can also remove favorites by clicking the remove button on each icon. Click the done button (checkmark). Your order is saved automatically.
 
+**Where are favorites stored?**
+
+AppGrid stores favorites in KDE's activity-aware favorites backend (`KAStatsFavoritesModel`, backed by `KActivitiesStats` from KDE Frameworks). Each AppGrid instance writes to its own namespace (`dev.xarbit.appgrid.favorites.instance-<id>`), which means:
+
+- Favorites are activity-aware (KActivities-linked) and sync via standard KDE sync mechanisms if configured
+- AppGrid does **not** share favorites with Kickoff or Kicker — each launcher uses its own client namespace (the same convention Kickoff and Kicker follow for each other)
+- AppGrid does **not** override or modify Kickoff/Kicker settings
+- If you upgrade from an older AppGrid version (≤1.7.x), your existing local favorites are migrated to the new backend automatically on first launch. No manual action required.
+
 **How does "Recently Used" work?**
 
 The recently used section shows apps you've launched recently. Where it appears depends on your settings:

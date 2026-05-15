@@ -105,12 +105,7 @@ public:
     Q_INVOKABLE void hideApp(int proxyIndex);
     Q_INVOKABLE void unhideApp(const QString &storageId);
     Q_INVOKABLE bool isFavorite(const QString &storageId) const;
-    Q_INVOKABLE void toggleFavorite(const QString &storageId);
     Q_INVOKABLE bool isRecent(const QString &storageId) const;
-    Q_INVOKABLE void moveFavorite(const QString &storageId, int toIndex);
-    // True position-exchange between two favorited apps. Both must already
-    // be favorites; otherwise no-op.
-    Q_INVOKABLE void swapFavorites(const QString &leftStorageId, const QString &rightStorageId);
 
     bool sortFavoritesAlphabetically() const;
     void setSortFavoritesAlphabetically(bool enabled);

@@ -162,6 +162,20 @@ GridView {
     property Item searchField: null
     // The apps model for section queries
     property var appsModel: null
+    property var sharedFavoritesModel: null
+
+    // Mirror of Kicker::FavoriteIdRole = Qt.UserRole + 3
+    readonly property int _favoriteIdRole: 259
+
+    function _findFavoriteRow(storageId) {
+        if (!sharedFavoritesModel) return -1
+        const prefixed = "applications:" + storageId
+        for (let i = 0; i < sharedFavoritesModel.count; ++i) {
+            const v = sharedFavoritesModel.data(sharedFavoritesModel.index(i, 0), _favoriteIdRole)
+            if (v === storageId || v === prefixed) return i
+        }
+        return -1
+    }
     // Config toggles
     property bool showRecentApps: true
     property bool startWithFavorites: false
@@ -366,8 +380,19 @@ GridView {
                         gridView.selectedSwapIndex = -1
                         var selectedData = gridView.appsModel.get(fromIndex)
                         var targetData = gridView.appsModel.get(model.index)
-                        if (selectedData && targetData && gridView.appsModel) {
-                            gridView.appsModel.swapFavorites(selectedData.storageId, targetData.storageId)
+                        if (selectedData && targetData && gridView.sharedFavoritesModel) {
+                            const li = gridView._findFavoriteRow(selectedData.storageId)
+                            const ri = gridView._findFavoriteRow(targetData.storageId)
+                            if (li >= 0 && ri >= 0 && li !== ri) {
+                                // moveRow is a shift; emulate swap with two moves.
+                                if (li < ri) {
+                                    gridView.sharedFavoritesModel.moveRow(li, ri)
+                                    gridView.sharedFavoritesModel.moveRow(ri - 1, li)
+                                } else {
+                                    gridView.sharedFavoritesModel.moveRow(ri, li)
+                                    gridView.sharedFavoritesModel.moveRow(li - 1, ri)
+                                }
+                            }
                             gridView.favoritesOrderChanged()
                         }
                     }
@@ -377,12 +402,14 @@ GridView {
             }
             onShuffleRequested: gridView.shuffleIcon(model.index)
             onRemoveRequested: {
-                if (gridView.appsModel) {
-                    gridView.appsModel.toggleFavorite(model.storageId || "")
-                    gridView.favoritesOrderChanged()
-                    if (gridView.selectedSwapIndex === model.index)
-                        gridView.selectedSwapIndex = -1
+                const sid = model.storageId || ""
+                if (sid && gridView.sharedFavoritesModel) {
+                    const prefixed = sid.indexOf(":") >= 0 ? sid : "applications:" + sid
+                    gridView.sharedFavoritesModel.removeFavorite(prefixed)
                 }
+                gridView.favoritesOrderChanged()
+                if (gridView.selectedSwapIndex === model.index)
+                    gridView.selectedSwapIndex = -1
             }
         }
 

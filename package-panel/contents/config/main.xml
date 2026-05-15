@@ -50,6 +50,10 @@
       <label>Whether to hide app name labels on the favorites tab.</label>
       <default>false</default>
     </entry>
+    <entry name="favoritesPortedToKAstats" type="Bool">
+      <label>Whether existing local favorites have been migrated into the KActivities-backed favorites model.</label>
+      <default>false</default>
+    </entry>
     <entry name="showScrollbars" type="Bool">
       <label>Whether to show scrollbars in the grid and search views.</label>
       <default>false</default>
