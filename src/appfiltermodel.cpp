@@ -120,10 +120,6 @@ void AppFilterModel::setFavoriteApps(const QStringList &list)
         return;
     m_favoriteApps = list;
     if (m_showFavoritesOnly)
-        // Use invalidate() instead of APPGRID_INVALIDATE_FILTER() because
-        // favorites mode uses a custom sort order (lessThan sorts by position
-        // in m_favoriteApps). A filter-only refresh would keep stale sort
-        // results, causing icons to appear in the wrong order.
         invalidate();
     emit favoriteAppsChanged();
 }

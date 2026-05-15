@@ -305,8 +305,6 @@ Kirigami.ShadowedRectangle {
         }
 
         // Reset grid state
-        appGrid.editMode = false
-        appGrid.selectedSwapIndex = -1
         appGrid.clearShuffles()
         appGrid.contentY = appGrid.originY
         appGrid.currentIndex = -1
@@ -510,7 +508,6 @@ Kirigami.ShadowedRectangle {
                 }
                 categoryBar.favoritesActive = active
                 if (!active) {
-                    appGrid.editMode = false
                     if (panel.isSortByCategory) {
                         categoryBar.scrollOnlySelected = ""
                         categoryGridView.contentY = 0
@@ -633,9 +630,20 @@ Kirigami.ShadowedRectangle {
 
                 AppGridView {
                     id: appGrid
-                    model: !panel.isSearching ? panel.appsModel : null
+                    // In favorites tab, drive the grid from KAStats directly so
+                    // reorder animations and pointer grabs work natively.
+                    // Elsewhere, or when alphabetical sort is enabled (which
+                    // KAStats does not support), use the filter proxy.
+                    model: panel.isSearching ? null
+                           : (panel.isFavoritesActive
+                              && panel.sharedFavoritesModel
+                              && !Plasmoid.configuration.sortFavoritesAlphabetically
+                              ? panel.sharedFavoritesModel
+                              : panel.appsModel)
                     appsModel: panel.appsModel
                     sharedFavoritesModel: panel.sharedFavoritesModel
+                    favoritesDragProxy: panel.appletInterface
+                                        ? panel.appletInterface.favoritesDragProxy : null
                     columns: panel.columns
                     adaptiveColumns: panel.nativePopup
                     iconSize: panel.gridIconSize
@@ -668,9 +676,6 @@ Kirigami.ShadowedRectangle {
                     onShuffleAnimRequested: function(fromX, fromY, toX, toY, fromIcon, toIcon, fromIndex, toIndex) {
                         shuffleOverlay.startAnim(fromX, fromY, toX, toY, fromIcon, toIcon, fromIndex, toIndex)
                     }
-                    onFavoritesOrderChanged: {
-                        // KAStats backend persists itself; nothing to do here.
-                    }
                 }
             }
 
@@ -687,55 +692,6 @@ Kirigami.ShadowedRectangle {
         }
     }
 
-    // -- Edit mode overlay (on top of everything) --
-    Rectangle {
-        anchors.bottom: editModeBtn.top
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottomMargin: Kirigami.Units.smallSpacing
-        z: 100
-        visible: appGrid.editMode
-        width: helpLabel.implicitWidth + Kirigami.Units.largeSpacing * 2
-        height: helpLabel.implicitHeight + Kirigami.Units.smallSpacing * 2
-        radius: Kirigami.Units.cornerRadius
-        color: Qt.rgba(Kirigami.Theme.backgroundColor.r,
-                       Kirigami.Theme.backgroundColor.g,
-                       Kirigami.Theme.backgroundColor.b, 0.9)
-
-        PlasmaComponents.Label {
-            id: helpLabel
-            anchors.centerIn: parent
-            text: appGrid.selectedSwapIndex < 0
-                  ? i18nd("dev.xarbit.appgrid", "Click an icon to select it, then click another to swap positions")
-                  : i18nd("dev.xarbit.appgrid", "Now click another icon to swap, or click again to deselect")
-            font: Kirigami.Theme.smallFont
-        }
-    }
-
-    PlasmaComponents.ToolButton {
-        id: editModeBtn
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: Kirigami.Units.largeSpacing
-        anchors.rightMargin: Kirigami.Units.largeSpacing
-            + (panel.cfgShowScrollbars && appGrid.contentHeight > appGrid.height ? Kirigami.Units.gridUnit : 0)
-        z: 100
-        visible: panel.isFavoritesActive && !panel.isSearching
-                 && !Plasmoid.configuration.sortFavoritesAlphabetically
-        icon.name: appGrid.editMode ? "dialog-ok-apply" : "document-edit"
-        checked: appGrid.editMode
-        onClicked: {
-            appGrid.editMode = !appGrid.editMode
-            appGrid.selectedSwapIndex = -1
-            if (!appGrid.editMode) {
-                appGrid.favoritesOrderChanged()
-                searchBar.field.forceActiveFocus()
-            }
-        }
-
-        PlasmaComponents.ToolTip.text: appGrid.editMode ? i18nd("dev.xarbit.appgrid", "Done") : i18nd("dev.xarbit.appgrid", "Reorder favorites")
-        PlasmaComponents.ToolTip.visible: hovered
-        PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
-    }
 
     // -----------------------------------------------------------------------
     // Context menu

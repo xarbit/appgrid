@@ -229,7 +229,7 @@ AppGrid uses a C++ backend for app discovery, window management, blur effects, a
 
 **How do I reorder my favorites?**
 
-Switch to the favorites tab, then click the edit button (pencil icon) in the bottom-right corner. Icons will start wiggling. Click an icon to select it, then click another to swap their positions. You can also remove favorites by clicking the remove button on each icon. Click the done button (checkmark). Your order is saved automatically.
+Switch to the favorites tab and drag any icon to its new position. The grid reflows as you drag; release to drop. Dragging near the top or bottom auto-scrolls. Order is saved automatically. To remove a favorite, right-click it and pick "Remove from Favorites".
 
 **Where are favorites stored?**
 

@@ -19,6 +19,14 @@ PlasmoidItem {
     activationTogglesExpanded: true
     hideOnWindowDeactivate: true
 
+    // Shared drag proxy for favorites reordering — see same property in the
+    // standalone variant's main.qml for details.
+    property Item favoritesDragProxy: Item {
+        property Item sourceItem
+        Drag.dragType: Drag.Automatic
+        Drag.supportedActions: Qt.MoveAction
+    }
+
     Plasmoid.icon: Plasmoid.configuration.useCustomButtonImage
         ? Plasmoid.configuration.customButtonImage
         : Plasmoid.configuration.icon

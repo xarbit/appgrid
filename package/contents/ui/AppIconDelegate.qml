@@ -24,6 +24,13 @@ Item {
     property bool isNew: false
     property bool hideLabel: false
     property real iconSize: Kirigami.Units.iconSizes.huge
+    // Identity used by the favorites drag controller. Set externally;
+    // empty disables dragging.
+    property string storageId: ""
+    property int gridRow: -1
+    // External proxy that carries the grab image; set when dragging should
+    // be enabled in this view (favorites tab only).
+    property Item dragProxy: null
     signal clicked(var mouse)
 
     // Visual icon override for shuffle animation (set externally by the grid)
@@ -31,11 +38,6 @@ Item {
 
     // Emitted when shuffle animation wants to swap with another icon
     signal shuffleRequested()
-
-    // -- Edit/reorder mode --
-    property bool editMode: false
-    property bool isSelected: false
-    signal removeRequested()
 
     // 0=None, 1=Shake, 2=Grow, 3=Bounce, 4=Spin, 5=Shuffle
     readonly property int hoverAnimation: Plasmoid.configuration.hoverAnimation
@@ -70,6 +72,16 @@ Item {
         } else if (iconAnimLoader.item) {
             iconAnimLoader.item.start()
         }
+    }
+
+    // Highlight background shown while this delegate is being dragged.
+    Rectangle {
+        anchors.fill: parent
+        anchors.margins: Kirigami.Units.smallSpacing
+        radius: Kirigami.Units.cornerRadius
+        color: Kirigami.Theme.highlightColor
+        opacity: 0.25
+        visible: pointerDrag.active || touchDrag.active
     }
 
     ColumnLayout {
@@ -121,40 +133,6 @@ Item {
         }
     }
 
-    // Remove from favorites button (edit mode) — top-level so it captures clicks above delegateMouse
-    MouseArea {
-        id: removeBtn
-        visible: root.editMode
-        width: Kirigami.Units.iconSizes.smallMedium
-        height: width
-        x: Kirigami.Units.smallSpacing
-        y: Kirigami.Units.smallSpacing
-        z: 100
-        hoverEnabled: true
-        cursorShape: Qt.PointingHandCursor
-        onClicked: root.removeRequested()
-
-        Kirigami.Icon {
-            anchors.fill: parent
-            source: "remove-symbolic"
-        }
-
-        PlasmaComponents.ToolTip.text: i18nd("dev.xarbit.appgrid", "Remove from Favorites")
-        PlasmaComponents.ToolTip.visible: removeBtn.containsMouse
-        PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
-    }
-
-    // Selection highlight border
-    Rectangle {
-        anchors.fill: parent
-        anchors.margins: Kirigami.Units.smallSpacing
-        radius: Kirigami.Units.cornerRadius
-        color: "transparent"
-        border.width: 2
-        border.color: Kirigami.Theme.highlightColor
-        visible: root.isSelected
-    }
-
     // Tooltip with app name, description, and install source
     readonly property string tooltipText: {
         var parts = []
@@ -170,7 +148,7 @@ Item {
     }
 
     PlasmaComponents.ToolTip.text: root.tooltipText
-    PlasmaComponents.ToolTip.visible: root.showTooltip && delegateMouse.containsMouse && !root.editMode
+    PlasmaComponents.ToolTip.visible: root.showTooltip && delegateMouse.containsMouse
     PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
 
     MouseArea {
@@ -180,10 +158,7 @@ Item {
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         cursorShape: Qt.PointingHandCursor
 
-        onEntered: {
-            if (!root.editMode)
-                root.playAnimation()
-        }
+        onEntered: root.playAnimation()
 
         onClicked: function(mouse) {
             root.clicked(mouse)
@@ -199,16 +174,46 @@ Item {
         Accessible.focusable: true
     }
 
-    // Wiggle animation for edit mode — animates entire delegate content
-    SequentialAnimation {
-        id: wiggleAnim
-        loops: Animation.Infinite
-        running: root.editMode
-        NumberAnimation { target: contentLayout; property: "rotation"; from: -2; to: 2; duration: 150; easing.type: Easing.InOutQuad }
-        NumberAnimation { target: contentLayout; property: "rotation"; from: 2; to: -2; duration: 150; easing.type: Easing.InOutQuad }
-        onRunningChanged: {
-            if (!running) contentLayout.rotation = 0
+    // -- Drag handler for favorites reordering --
+    // Activates a shared external proxy carrying the grabbed icon image.
+    // Only enabled when `dragProxy` and `storageId` are set, which the
+    // favorites view does. Position-based reorder happens in the surrounding
+    // DropArea (see AppGridView).
+    function _beginDrag(handler) {
+        if (!root.dragProxy) return
+        if (!handler.active) {
+            root.dragProxy.Drag.active = false
+            root.dragProxy.Drag.imageSource = ""
+            root.dragProxy.sourceItem = null
+            return
         }
+        delegateIcon.grabToImage(function(result) {
+            if (!handler.active) return
+            root.dragProxy.sourceItem = root
+            root.dragProxy.Drag.imageSource = result.url
+            root.dragProxy.Drag.mimeData = { "text/x-appgrid-storage-id": root.storageId }
+            root.dragProxy.Drag.active = true
+        })
     }
 
+    DragHandler {
+        id: pointerDrag
+        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad | PointerDevice.Stylus
+        enabled: root.dragProxy !== null && root.storageId.length > 0
+        target: null
+        onActiveChanged: root._beginDrag(this)
+    }
+
+    DragHandler {
+        id: touchDrag
+        acceptedDevices: PointerDevice.TouchScreen
+        enabled: pointerDrag.enabled
+        target: null
+        // Both axes free — favorites grid reorders in 2D, unlike the list
+        // views in upstream Kickoff that only need a single axis.
+        onActiveChanged: root._beginDrag(this)
+    }
+
+    // Lift delegate above siblings while dragging
+    z: (pointerDrag.active || touchDrag.active) ? 10 : 0
 }
