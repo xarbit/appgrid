@@ -12,7 +12,7 @@
   <group name="General">
     <entry name="icon" type="String">
       <label>The name of the icon to use for the compact representation.</label>
-      <default>start-here-kde-symbolic</default>
+      <default>dev.xarbit.appgrid</default>
     </entry>
     <entry name="useCustomButtonImage" type="Bool">
       <label>Whether to use a custom image instead of an icon.</label>

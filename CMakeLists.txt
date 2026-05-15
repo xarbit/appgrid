@@ -213,6 +213,9 @@ ki18n_install(po)
 install(FILES dev.xarbit.appgrid.metainfo.xml
         DESTINATION ${KDE_INSTALL_METAINFODIR})
 
+install(FILES dev.xarbit.appgrid.svg
+        DESTINATION ${KDE_INSTALL_ICONDIR}/hicolor/scalable/apps)
+
 # --- Tests ---
 
 if(BUILD_TESTING)

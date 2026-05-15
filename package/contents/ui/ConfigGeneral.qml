@@ -54,7 +54,7 @@ KCMUtils.SimpleKCM {
     property var cfg_hiddenApps: Plasmoid.configuration.hiddenApps
 
     // Default icon defined in main.xml — single source of truth for fallback.
-    readonly property string defaultIcon: "start-here-kde-symbolic"
+    readonly property string defaultIcon: "dev.xarbit.appgrid"
 
     // ListModel mirror for cfg_hiddenApps (StringList doesn't work directly as Repeater model).
     ListModel { id: hiddenAppsModel }
@@ -390,7 +390,7 @@ KCMUtils.SimpleKCM {
             icon.name: "edit-undo"
             text: i18nd("dev.xarbit.appgrid", "Reset to Defaults")
             onClicked: {
-                configGeneral.cfg_icon = "start-here-kde-symbolic"
+                configGeneral.cfg_icon = configGeneral.defaultIcon
                 configGeneral.cfg_useCustomButtonImage = false
                 configGeneral.cfg_customButtonImage = ""
                 configGeneral.cfg_menuLabel = ""
