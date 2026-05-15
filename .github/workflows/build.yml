@@ -207,6 +207,7 @@ jobs:
           /usr/share/plasma/plasmoids/dev.xarbit.appgrid/
           /usr/share/plasma/plasmoids/dev.xarbit.appgrid.panel/
           /usr/share/metainfo/dev.xarbit.appgrid.metainfo.xml
+          /usr/share/icons/hicolor/scalable/apps/dev.xarbit.appgrid.svg
           /usr/share/locale/*/LC_MESSAGES/dev.xarbit.appgrid.mo
           SPEC
               rpmbuild -bb \
