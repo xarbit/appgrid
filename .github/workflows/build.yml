@@ -71,15 +71,21 @@ jobs:
             qt6-base qt6-declarative \
             libplasma kpackage kio kservice ki18n \
             kcoreaddons kwindowsystem krunner layer-shell-qt \
-            plasma-workspace
+            plasma-workspace appstream
 
       - name: Checkout
         uses: actions/checkout@v5
 
       - name: Build
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX=/usr
+          cmake -B build -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX=/usr -DBUILD_TESTING=ON
           cmake --build build -j$(nproc)
+
+      - name: Run tests
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Validate AppStream metadata
+        run: appstreamcli validate --no-net dev.xarbit.appgrid.metainfo.xml
 
       - name: Package
         run: |

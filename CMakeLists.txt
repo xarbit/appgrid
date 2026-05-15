@@ -13,6 +13,8 @@ include(GNUInstallDirs)
 # X11 support — disable when targeting Plasma 6.8+ (Wayland-only)
 option(ENABLE_X11 "Enable X11 session support" ON)
 
+option(BUILD_TESTING "Build the test suite" OFF)
+
 find_package(Qt6 REQUIRED COMPONENTS Quick Gui DBus)
 find_package(KF6Service REQUIRED)
 find_package(KF6I18n REQUIRED)
@@ -208,3 +210,10 @@ ki18n_install(po)
 
 install(FILES dev.xarbit.appgrid.metainfo.xml
         DESTINATION ${KDE_INSTALL_METAINFODIR})
+
+# --- Tests ---
+
+if(BUILD_TESTING)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
