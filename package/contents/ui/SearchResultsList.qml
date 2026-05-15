@@ -99,7 +99,7 @@ ListView {
         PlasmaComponents.ItemDelegate {
             id: resultDelegate
             width: listView.width
-            height: listView.iconSize + Kirigami.Units.smallSpacing * 2
+            height: Math.max(listView.iconSize, contentItem.implicitHeight) + Kirigami.Units.smallSpacing * 2
             highlighted: listView.currentIndex === model.index
 
             contentItem: RowLayout {
