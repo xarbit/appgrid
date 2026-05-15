@@ -54,14 +54,10 @@ jobs:
           echo "version=${BASE_VERSION}-dev.${DEV_COUNT}" >> "$GITHUB_OUTPUT"
           echo "pkg_version=${BASE_VERSION}~dev.${DEV_COUNT}" >> "$GITHUB_OUTPUT"
 
-  arch:
-    name: Arch Linux
-    needs: version
+  tests:
+    name: Tests & Lint
     runs-on: ubuntu-latest
-    # x86_64 only — no official Arch Linux ARM container
     container: archlinux:latest
-    env:
-      APP_VERSION: ${{ needs.version.outputs.version }}
     steps:
       - name: Install dependencies
         run: |
@@ -71,15 +67,68 @@ jobs:
             qt6-base qt6-declarative \
             libplasma kpackage kio kservice ki18n \
             kcoreaddons kwindowsystem krunner layer-shell-qt \
-            plasma-workspace appstream namcap
+            plasma-workspace appstream namcap \
+            python-pip clang
+          python3 -m pip install --break-system-packages codespell reuse
 
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Build
+      - name: Check SPDX license headers
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX=/usr -DBUILD_TESTING=ON
+          set -e
+          missing=$(git ls-files '*.cpp' '*.h' '*.qml' | \
+            grep -v -E '^(package|package-panel)/contents/ui/DevFlags\.qml$' | \
+            while read f; do
+              grep -L "SPDX-License-Identifier" "$f" || true
+            done)
+          if [ -n "$missing" ]; then
+            echo "::error::Files missing SPDX-License-Identifier:"
+            echo "$missing"
+            exit 1
+          fi
+          echo "all tracked source files carry SPDX-License-Identifier"
+
+      - name: Check trailing whitespace
+        run: |
+          # Use empty tree as the diff base to scan the full working tree
+          EMPTY=$(git hash-object -t tree --stdin </dev/null)
+          git -c core.whitespace=trailing-space,space-before-tab \
+              diff --check $EMPTY HEAD -- \
+              '*.cpp' '*.h' '*.qml' '*.xml' '*.json' '*.md' 'CMakeLists.txt'
+
+      - name: Spellcheck (codespell)
+        run: |
+          codespell \
+            --skip='build*,*.po,*.pot,po,*.svg' \
+            --ignore-words-list='growin' \
+            --quiet-level=2 \
+            src/ package/contents/ package-panel/contents/ tests/ README.md
+
+      - name: REUSE compliance
+        run: reuse lint || echo "::warning::REUSE lint failed — non-blocking"
+        continue-on-error: true
+
+      - name: Build (with tests)
+        env:
+          CC: clang
+          CXX: clang++
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX=/usr \
+            -DBUILD_TESTING=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
           cmake --build build -j$(nproc)
+
+      - name: clang-tidy
+        run: |
+          # Strip gcc-only flags that clang-tidy (clang-based) doesn't recognize
+          sed -i 's/-mno-direct-extern-access//g' build/compile_commands.json
+          # Run on our sources only; non-fatal initially.
+          for src in src/appmodel.cpp src/appfiltermodel.cpp src/appgridplugin.cpp; do
+            clang-tidy -p build "$src" \
+              --quiet \
+              --warnings-as-errors='' \
+              --header-filter='src/.*' || true
+          done
 
       - name: Run tests
         env:
@@ -124,6 +173,33 @@ jobs:
       - name: Lint PKGBUILD
         run: namcap PKGBUILD
 
+  arch:
+    name: Arch Linux
+    needs: [version, tests]
+    runs-on: ubuntu-latest
+    # x86_64 only — no official Arch Linux ARM container
+    container: archlinux:latest
+    env:
+      APP_VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - name: Install dependencies
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm --needed \
+            base-devel git cmake extra-cmake-modules \
+            qt6-base qt6-declarative \
+            libplasma kpackage kio kservice ki18n \
+            kcoreaddons kwindowsystem krunner layer-shell-qt \
+            plasma-workspace
+
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Build
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX=/usr
+          cmake --build build -j$(nproc)
+
       - name: Package
         run: |
           DESTDIR="$PWD/pkg" cmake --install build
@@ -138,7 +214,7 @@ jobs:
 
   fedora:
     name: Fedora (${{ matrix.arch }})
-    needs: version
+    needs: [version, tests]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -301,7 +377,7 @@ jobs:
 
   deb-packages:
     name: ${{ matrix.distro.name }} (${{ matrix.arch.name }})
-    needs: version
+    needs: [version, tests]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

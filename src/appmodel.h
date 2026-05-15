@@ -77,4 +77,3 @@ private:
     QHash<QString, QString> m_categoryMenuPaths;
     bool m_useSystemCategories = false;
 };
-

@@ -1,0 +1,17 @@
+---
+Checks: >
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-narrowing-conversions,
+  performance-*,
+  -performance-no-int-to-ptr,
+  -performance-enum-size,
+  modernize-use-nullptr,
+  modernize-use-override,
+  modernize-make-unique,
+  readability-misleading-indentation,
+  readability-redundant-declaration
+
+WarningsAsErrors: ''
+HeaderFilterRegex: 'src/.*'
+FormatStyle: none
