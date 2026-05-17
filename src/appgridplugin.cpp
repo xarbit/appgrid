@@ -11,6 +11,8 @@
 #include <KTerminalLauncherJob>
 #include <KWindowEffects>
 #include <KWindowSystem>
+
+#include <PlasmaActivities/ResourceInstance>
 #ifdef APPGRID_X11_SUPPORT
 #include <KX11Extras>
 #endif
@@ -249,6 +251,18 @@ void AppGridPlugin::setInputRect(QWindow *window, int x, int y, int w, int h)
     // On Wayland this maps to wl_surface.set_input_region(rect). Areas outside
     // the rect become pass-through, so events land on the surface below.
     window->setMask(QRegion(QRect(x, y, w, h)));
+}
+
+void AppGridPlugin::notifyAppLaunched(const QString &storageId)
+{
+    if (storageId.isEmpty())
+        return;
+    // Standard convention used by Kicker, Kickoff and friends: the resource
+    // URL is "applications:<storage-id>", tagged with our agent so other
+    // tools can attribute the launch to AppGrid.
+    KActivities::ResourceInstance::notifyAccessed(
+        QUrl(QStringLiteral("applications:") + storageId),
+        QStringLiteral("dev.xarbit.appgrid"));
 }
 
 // --- Prefix mode commands ---

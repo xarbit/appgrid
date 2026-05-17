@@ -412,10 +412,22 @@ Kirigami.ShadowedRectangle {
     }
 
     function launchApp(index) {
-        if (appsModel && index >= 0) {
-            appsModel.launch(index)
-            closeRequested()
-        }
+        if (!appsModel || index < 0)
+            return
+        // Broadcast to KActivities so other Plasma launchers count AppGrid
+        // as a contributing source (one-way; we don't read this data back).
+        const sid = appsModel.get(index).storageId
+        if (sid) Plasmoid.notifyAppLaunched(sid)
+        appsModel.launch(index)
+        closeRequested()
+    }
+
+    function launchAppByStorageId(sid) {
+        if (!appsModel || !sid)
+            return
+        Plasmoid.notifyAppLaunched(sid)
+        appsModel.launchByStorageId(sid)
+        closeRequested()
     }
 
     // Eat clicks so they don't pass through the panel
@@ -689,12 +701,7 @@ Kirigami.ShadowedRectangle {
                              && !panel.isFavoritesActive
                              && !panel.cfgStartWithFavorites
                 onLaunched: function(proxyIndex) { panel.launchApp(proxyIndex) }
-                onRecentLaunched: function(storageId) {
-                    if (panel.appsModel) {
-                        panel.appsModel.launchByStorageId(storageId)
-                        panel.closeRequested()
-                    }
-                }
+                onRecentLaunched: function(storageId) { panel.launchAppByStorageId(storageId) }
                 onContextMenuRequested: function(proxyIndex, storageId, desktopFile) {
                     contextMenu.showForApp(proxyIndex, storageId, desktopFile)
                 }
@@ -749,12 +756,7 @@ Kirigami.ShadowedRectangle {
                         }
                     }
                     onLaunched: function(index) { panel.launchApp(index) }
-                    onRecentLaunched: function(storageId) {
-                        if (panel.appsModel) {
-                            panel.appsModel.launchByStorageId(storageId)
-                            panel.closeRequested()
-                        }
-                    }
+                    onRecentLaunched: function(storageId) { panel.launchAppByStorageId(storageId) }
                     onContextMenuRequested: function(index, storageId, desktopFile) {
                         contextMenu.showForApp(index, storageId, desktopFile)
                     }

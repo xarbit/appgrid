@@ -28,6 +28,11 @@ find_package(LayerShellQt REQUIRED)
 find_package(KF6Runner REQUIRED)
 find_package(Plasma REQUIRED)
 find_package(PlasmaQuick REQUIRED)
+# Write-side only: KActivities::ResourceInstance::notifyAccessed broadcasts
+# AppGrid launches to the system-wide KAStats database so Kickoff / KRunner /
+# Plasma Activities see AppGrid as a contributing launcher. We do NOT read
+# from KAStats — see #95 close-out for the rationale.
+find_package(PlasmaActivities REQUIRED)
 
 set(APPGRID_COMMON_LIBS
     Qt6::Quick
@@ -42,6 +47,7 @@ set(APPGRID_COMMON_LIBS
     LayerShellQt::Interface
     Plasma::PlasmaQuick
     KF6::Runner
+    Plasma::Activities
 )
 
 # QML components shared between both plasmoids

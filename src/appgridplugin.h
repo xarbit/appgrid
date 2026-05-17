@@ -142,6 +142,14 @@ public:
      */
     Q_INVOKABLE void setInputRect(QWindow *window, int x, int y, int w, int h);
 
+    /**
+     * Broadcast an app launch to the system-wide KActivities database so
+     * other Plasma launchers (Kickoff, KRunner, etc.) count AppGrid as a
+     * contributing launcher. AppGrid does NOT read this data back; it's a
+     * one-way courtesy notification. See #95 for the rationale.
+     */
+    Q_INVOKABLE void notifyAppLaunched(const QString &storageId);
+
     // --- Prefix mode commands ---
 
     /** Run @p command in the user's preferred terminal emulator using @p shell. */
