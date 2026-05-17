@@ -330,35 +330,38 @@ jobs:
           platforms: arm64
 
       - name: Build and package
-        # Build inside Debian 13 (trixie) — oldest distro in our matrix
-        # that ships Plasma 6. The resulting .so is forward-compatible
-        # with any system that has same-or-newer glibc / libstdc++ / Qt /
-        # KF6 (Arch, KDE Linux, Fedora N, Kinoite, openSUSE Tumbleweed).
-        # Building on Arch instead would produce a binary that ldd-fails
-        # on older targets.
+        # Build inside Fedora 42. KDE bumped its library SONAME chain to
+        # version 7 in Plasma ~6.4 (libPlasma.so.7, libPlasmaActivities.so.7,
+        # …). A tarball built against the older SONAME 6 (e.g. Debian 13
+        # trixie's Plasma 6.1) won't load on any newer distro that has
+        # bumped to 7 — which is most of our actual target audience: KDE
+        # Linux, Kinoite, Bazzite, Aurora, Kalpa, SteamOS, Arch, Tumbleweed.
+        # Fedora 42 is the oldest mainstream stable distro shipping SONAME
+        # 7, so building there gives the broadest reach on current Plasma.
         run: |
           docker run --rm --platform ${{ matrix.platform }} \
             -v ${{ github.workspace }}:/workspace \
             -e APP_VERSION="${APP_VERSION}" \
             -e BUILD_TYPE="${BUILD_TYPE}" \
             -e ARCH="${{ matrix.arch }}" \
-            -e DEBIAN_FRONTEND=noninteractive \
-            debian:13 bash -c '
+            fedora:42 bash -c '
               set -e
-              apt-get update
-              apt-get install -y \
-                cmake extra-cmake-modules g++ \
-                qt6-base-dev qt6-declarative-dev \
-                libplasma-dev libkf6package-dev libkf6kio-dev \
-                libkf6service-dev libkf6i18n-dev libkf6coreaddons-dev \
-                libkf6windowsystem-dev libkf6runner-dev \
-                libplasmaactivities-dev \
-                liblayershellqtinterface-dev \
-                plasma-workspace-dev \
+              dnf install -y \
+                cmake extra-cmake-modules gcc-c++ make \
+                qt6-qtbase-devel qt6-qtdeclarative-devel \
+                libplasma-devel kf6-kpackage-devel kf6-kio-devel \
+                kf6-kservice-devel kf6-ki18n-devel kf6-kcoreaddons-devel \
+                kf6-kwindowsystem-devel kf6-krunner-devel layer-shell-qt-devel \
+                plasma-activities-devel plasma-workspace-devel \
                 gettext
               cd /workspace
+              # Force the plugin install path to lib/qt6/plugins/. Fedora
+              # ECM defaults to lib64/qt6/plugins/ (multiarch on 64-bit),
+              # but install.py + the plasma-workspace env script wire
+              # QT_PLUGIN_PATH to ~/.local/lib/qt6/plugins/ only.
               cmake -B build -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
                   -DAPPGRID_UNIVERSAL_BUILD=ON \
+                  -DKDE_INSTALL_QTPLUGINDIR=lib/qt6/plugins \
                   -DAPPGRID_VERSION_OVERRIDE="$APP_VERSION"
               cmake --build build -j$(nproc)
               mkdir -p out
