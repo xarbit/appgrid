@@ -17,7 +17,7 @@ import org.kde.plasma.plasmoid
 Window {
     id: root
 
-    // Plasmoid root (kicker). Deliberately `var`, not typed as PlasmoidItem,
+    // Plasmoid root. Deliberately `var`, not typed as PlasmoidItem,
     // for two reasons: typing it would force every consumer to import
     // `org.kde.plasma.plasmoid`, and keeping the contract structural lets
     // tests pass plain QtObject mocks that expose the same properties

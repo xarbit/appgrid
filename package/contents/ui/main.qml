@@ -3,7 +3,7 @@
     SPDX-License-Identifier: GPL-2.0-or-later
 
     Root plasmoid item: panel icon + custom Window lifecycle.
-    Display modes: fullscreen overlay (0) or centered popup (1).
+    The window opens as a centered popup over a dim overlay; see GridWindow.qml.
 */
 
 import QtQuick

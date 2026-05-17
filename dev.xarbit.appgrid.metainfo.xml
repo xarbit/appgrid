@@ -10,16 +10,16 @@
     <project_license>GPL-2.0-or-later</project_license>
 
     <name>Application Launcher (modern)</name>
-    <summary>A modern fullscreen application grid launcher for KDE Plasma</summary>
+    <summary>A modern centered application grid launcher for KDE Plasma</summary>
     <description>
         <p>
-            AppGrid is a modern fullscreen application grid launcher for
-            KDE Plasma, inspired by macOS Launchpad. It provides a clean,
-            visual way to browse and launch your applications.
+            AppGrid is a modern centered application grid launcher for
+            KDE Plasma. It provides a clean, visual way to browse and
+            launch your applications.
         </p>
         <p>Features include:</p>
         <ul>
-            <li>Fullscreen overlay grid with Wayland layer-shell support</li>
+            <li>Centered grid overlay with Wayland layer-shell support</li>
             <li>Category-based filtering and KRunner search integration</li>
             <li>Quick commands: terminal, shell, file browser (type ? for help)</li>
             <li>Configurable icon size, grid dimensions, and sort order</li>

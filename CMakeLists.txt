@@ -29,9 +29,9 @@ find_package(KF6Runner REQUIRED)
 find_package(Plasma REQUIRED)
 find_package(PlasmaQuick REQUIRED)
 # Write-side only: KActivities::ResourceInstance::notifyAccessed broadcasts
-# AppGrid launches to the system-wide KAStats database so Kickoff / KRunner /
-# Plasma Activities see AppGrid as a contributing launcher. We do NOT read
-# from KAStats — see #95 close-out for the rationale.
+# AppGrid launches to the system-wide KActivities database so Kickoff / KRunner /
+# Plasma Activities see AppGrid as a contributing launcher. We do NOT read from
+# KActivities — see #95 close-out for the rationale.
 find_package(PlasmaActivities REQUIRED)
 
 set(APPGRID_COMMON_LIBS
@@ -90,7 +90,7 @@ set(SHARED_ICONANIM_QML_FILES
     iconanims/SpinAnim.qml
 )
 
-# --- Main plasmoid (custom Window: fullscreen/centered) ---
+# --- Main plasmoid (Center variant: custom Window with centered popup) ---
 
 add_library(dev.xarbit.appgrid SHARED
     src/appgridplugin_register.cpp

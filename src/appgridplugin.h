@@ -92,7 +92,7 @@ private:
 /**
  * @brief Main Plasma applet plugin for the AppGrid application launcher.
  *
- * Provides a macOS-style fullscreen application grid with category filtering,
+ * Provides a centered application grid overlay with category filtering,
  * search, blur effects, and session management actions. Exposes Q_INVOKABLE
  * methods for QML to configure the overlay window, manage blur, launch
  * session actions, and integrate with the desktop (task manager, desktop icons).

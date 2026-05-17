@@ -2,7 +2,7 @@
     SPDX-FileCopyrightText: 2026 AppGrid Contributors
     SPDX-License-Identifier: GPL-2.0-or-later
 
-    Borderless search field with icon, styled after macOS Launchpad.
+    Borderless search field with icon at the top of the grid.
 */
 
 import QtQuick

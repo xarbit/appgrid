@@ -2,8 +2,9 @@
     SPDX-FileCopyrightText: 2026 AppGrid Contributors
     SPDX-License-Identifier: GPL-2.0-or-later
 
-    Reusable grid panel content. Used by GridWindow (fullscreen/centered modes)
-    and as native Plasma popup (near panel icon mode).
+    Reusable grid panel content. Used by GridWindow (Center variant — opens
+    centered over a dim overlay) and as a native Plasma popup (Panel variant
+    — opens near the panel icon).
 */
 
 import QtQuick
@@ -17,7 +18,7 @@ Kirigami.ShadowedRectangle {
     id: panel
 
     signal closeRequested()
-    // Plasmoid root (kicker). Deliberately `var`, not typed as PlasmoidItem,
+    // Plasmoid root. Deliberately `var`, not typed as PlasmoidItem,
     // for two reasons: typing it would force every consumer to import
     // `org.kde.plasma.plasmoid`, and keeping the contract structural lets
     // tests pass plain QtObject mocks that expose the same properties
@@ -183,7 +184,7 @@ Kirigami.ShadowedRectangle {
 
     // -- KActivities-backed favorites (always the source of truth) --
     // SharedFavoritesProvider.qml isolates the org.kde.plasma.private.kicker
-    // import so a missing Kicker plugin is logged rather than crashing.
+    // import so a missing private launcher plugin is logged rather than crashing.
     Loader {
         id: sharedFavoritesLoader
         active: true

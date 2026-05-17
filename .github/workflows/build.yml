@@ -66,7 +66,7 @@ jobs:
             base-devel git cmake extra-cmake-modules \
             qt6-base qt6-declarative \
             libplasma kpackage kio kservice ki18n \
-            kcoreaddons kwindowsystem krunner layer-shell-qt \
+            kcoreaddons kwindowsystem krunner layer-shell-qt plasma-activities \
             plasma-workspace appstream namcap \
             python-pip clang
           python3 -m pip install --break-system-packages codespell reuse
@@ -205,7 +205,7 @@ jobs:
             base-devel git cmake extra-cmake-modules \
             qt6-base qt6-declarative \
             libplasma kpackage kio kservice ki18n \
-            kcoreaddons kwindowsystem krunner layer-shell-qt \
+            kcoreaddons kwindowsystem krunner layer-shell-qt plasma-activities \
             plasma-workspace
 
       - name: Checkout
@@ -269,7 +269,7 @@ jobs:
                 libplasma-devel kf6-kpackage-devel kf6-kio-devel \
                 kf6-kservice-devel kf6-ki18n-devel kf6-kcoreaddons-devel \
                 kf6-kwindowsystem-devel kf6-krunner-devel layer-shell-qt-devel \
-                plasma-workspace-devel \
+                kf6-plasma-activities-devel plasma-workspace-devel \
                 gettext rpm-build
               cd /workspace
               cmake -B build -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX=/usr
@@ -439,6 +439,7 @@ jobs:
                 libplasma-dev libkf6package-dev libkf6kio-dev \
                 libkf6service-dev libkf6i18n-dev libkf6coreaddons-dev \
                 libkf6windowsystem-dev libkf6runner-dev \
+                libplasma-activities-dev \
                 liblayershellqtinterface-dev \
                 plasma-workspace-dev \
                 gettext dpkg-dev
