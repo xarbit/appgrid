@@ -19,18 +19,19 @@
 
 import QtQuick
 import org.kde.plasma.plasmoid
+import "favoriteid.js" as FavoriteId
 
 DropArea {
     id: reorderArea
 
     // The owning GridView. We read its dragSource, sharedFavoritesModel,
-    // favoritesActive flag, _findFavoriteRow() helper, externalFavoriteDragReceived
+    // favoritesActive flag, findFavoriteRow() helper, externalFavoriteDragReceived
     // signal, plus the standard GridView geometry/animation properties.
-    required property var gridView
+    required property GridView gridView
 
     // EdgeAutoScroller instance scrolling the same grid; we defer reorder
     // ticks while it's running so the displaced delegates aren't disturbed.
-    required property var edgeScroller
+    required property EdgeAutoScroller edgeScroller
 
     anchors.fill: parent
     z: -1
@@ -41,7 +42,7 @@ DropArea {
 
     property var pendingMoves: []
 
-    readonly property var _source: gridView.dragSource
+    readonly property DragSource _source: gridView.dragSource
 
     onEntered: drag => {
         pendingMoves = []
@@ -83,7 +84,7 @@ DropArea {
         // Re-resolve the source's current row from the model rather than
         // trusting the cached value — content may have shifted under us
         // during a scroll or external favorites change.
-        const liveSourceRow = gridView._findFavoriteRow(source.storageId)
+        const liveSourceRow = gridView.findFavoriteRow(source.storageId)
         if (liveSourceRow < 0) return
         source.gridRow = liveSourceRow
 
@@ -116,14 +117,15 @@ DropArea {
             // launching a .desktop is the expected favorites use case.
             if (!id.endsWith(".desktop")) continue
             // Strip file:// or path prefix; KAStats's normaliser accepts
-            // bare storage IDs (basename) or "applications:" form.
+            // bare storage IDs (basename) or the prefixed form.
             const slash = id.lastIndexOf("/")
             if (slash >= 0) id = id.substring(slash + 1)
+            const prefixed = FavoriteId.toPrefixed(id)
             if (insertAt >= 0) {
-                gridView.sharedFavoritesModel.addFavorite("applications:" + id, insertAt)
+                gridView.sharedFavoritesModel.addFavorite(prefixed, insertAt)
                 insertAt++
             } else {
-                gridView.sharedFavoritesModel.addFavorite("applications:" + id)
+                gridView.sharedFavoritesModel.addFavorite(prefixed)
             }
         }
         drag.accept(Qt.CopyAction)

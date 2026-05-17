@@ -17,6 +17,11 @@ import org.kde.plasma.plasmoid
 Window {
     id: root
 
+    // Plasmoid root (kicker). Deliberately `var`, not typed as PlasmoidItem,
+    // for two reasons: typing it would force every consumer to import
+    // `org.kde.plasma.plasmoid`, and keeping the contract structural lets
+    // tests pass plain QtObject mocks that expose the same properties
+    // (dragSource, isDragInFlight, closeWindow(), …).
     property var appletInterface: null
 
     readonly property real panelShadowMargin: Kirigami.Units.gridUnit * 2
@@ -216,43 +221,53 @@ Window {
     // isn't cancelled by the source window disappearing mid-drag).
     property bool closeOnDeactivate: false
     readonly property bool _dragInFlight: appletInterface
-        && appletInterface.dragSource
-        && appletInterface.dragSource.isDragInFlight
+        ? appletInterface.isDragInFlight : false
     onActiveChanged: {
         if (!active && visible && closeOnDeactivate && !_dragInFlight) {
             if (appletInterface)
                 appletInterface.closeWindow()
         }
     }
-    // When a drag-out finishes, close the window if it had lost focus during
-    // the drag. Without this, the window would linger after the user drops on
-    // an external target.
+    // While a drag-out is in flight, shrink the window's input region to the
+    // visible grid panel so the dim area around it becomes pointer-pass-through.
+    // AppGrid's layer-shell surface covers the full screen, so the taskbar/
+    // panel/desktop are *underneath* us — without pass-through the cursor
+    // never lands on an external drop target (verified via WAYLAND_DEBUG).
+    // Reorder inside the panel rect still works because that area keeps input.
     //
-    // Also flip the window into pointer pass-through mode for the lifetime of
-    // the drag: AppGrid's layer-shell surface covers the full screen, so the
-    // taskbar/panel/desktop are *underneath* us. Without pass-through the
-    // user cannot reach those drop targets — the drag advertises mime fine
-    // but the only surface receiving pointer events is AppGrid itself, so
-    // the cursor never lands on an acceptor (verified via WAYLAND_DEBUG).
-    on_DragInFlightChanged: {
+    // The binding tracks panel geometry too, so if the panel resizes mid-drag
+    // (orientation change, dynamic content) the input rect follows.
+    function _applyDragInputRect() {
         if (_dragInFlight) {
-            // Shrink input region to the visible grid panel so the dim area
-            // around it becomes pass-through. The user can drop on the
-            // taskbar/panel/desktop underneath while internal favorites
-            // reorder still receives drag events inside the panel rect.
             const pw = Math.round(panel.width)
             const ph = Math.round(panel.height)
             const px = Math.round((root.width - pw) / 2)
             const py = Math.round((root.height - ph) / 2)
             Plasmoid.setInputRect(root, px, py, pw, ph)
         } else {
-            // Drag ended — restore full-window input.
             Plasmoid.setInputRect(root, 0, 0, 0, 0)
         }
+    }
+    on_DragInFlightChanged: {
+        _applyDragInputRect()
+        // When a drag-out finishes, close the window if it had lost focus
+        // during the drag. Otherwise the window would linger after the drop.
         if (!_dragInFlight && !active && visible && closeOnDeactivate
                 && appletInterface) {
             appletInterface.closeWindow()
         }
+    }
+    Connections {
+        target: panel
+        enabled: root._dragInFlight
+        function onWidthChanged()  { root._applyDragInputRect() }
+        function onHeightChanged() { root._applyDragInputRect() }
+    }
+    Connections {
+        target: root
+        enabled: root._dragInFlight
+        function onWidthChanged()  { root._applyDragInputRect() }
+        function onHeightChanged() { root._applyDragInputRect() }
     }
 
     // -----------------------------------------------------------------------

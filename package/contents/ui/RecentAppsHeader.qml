@@ -25,7 +25,7 @@ Column {
     property bool showTooltips: true
     // Shared DragSource from the plasmoid root so recent apps can also be
     // dragged out to external targets (taskbar, panel, Dolphin, desktop).
-    property var dragSource: null
+    property DragSource dragSource: null
 
     signal recentLaunched(string storageId)
     signal contextMenuRequested(string storageId, string desktopFile)
@@ -83,7 +83,6 @@ Column {
                     storageId: recentDelegate.modelData
                     desktopFile: recentDelegate.appData.desktopFile || ""
                     dragSource: recentHeader.dragSource
-                    dragEnabled: true
                     onClicked: function(mouse) {
                         if (mouse.button === Qt.RightButton)
                             recentHeader.contextMenuRequested(recentDelegate.modelData, recentDelegate.appData.desktopFile || "")

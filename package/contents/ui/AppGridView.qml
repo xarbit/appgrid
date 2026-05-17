@@ -10,6 +10,7 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.plasmoid
+import "favoriteid.js" as FavoriteId
 
 GridView {
     id: gridView
@@ -154,17 +155,17 @@ GridView {
     property var appsModel: null
     property var sharedFavoritesModel: null
     // Shared DragSource from the plasmoid root; set by GridPanel.
-    property var dragSource: null
+    property DragSource dragSource: null
 
     // FavoriteId role index — pushed in by the owner once the shared model
     // is ready (see GridPanel.sharedFavoritesLoader). -1 disables lookup.
-    property int _favoriteIdRole: -1
+    property int favoriteIdRole: -1
 
-    function _findFavoriteRow(storageId) {
-        if (!sharedFavoritesModel || _favoriteIdRole < 0) return -1
-        const prefixed = "applications:" + storageId
+    function findFavoriteRow(storageId) {
+        if (!sharedFavoritesModel || favoriteIdRole < 0) return -1
+        const prefixed = FavoriteId.toPrefixed(storageId)
         for (let i = 0; i < sharedFavoritesModel.count; ++i) {
-            const v = sharedFavoritesModel.data(sharedFavoritesModel.index(i, 0), _favoriteIdRole)
+            const v = sharedFavoritesModel.data(sharedFavoritesModel.index(i, 0), favoriteIdRole)
             if (v === storageId || v === prefixed) return i
         }
         return -1
@@ -226,9 +227,8 @@ GridView {
         if (favoritesActive && sharedFavoritesModel
                 && model === sharedFavoritesModel) {
             const v = sharedFavoritesModel.data(
-                sharedFavoritesModel.index(currentIndex, 0), _favoriteIdRole)
-            const sid = (v && v.indexOf && v.indexOf("applications:") === 0)
-                        ? v.substring(13) : (v || "")
+                sharedFavoritesModel.index(currentIndex, 0), favoriteIdRole)
+            const sid = FavoriteId.stripPrefix(v)
             if (sid) recentLaunched(sid)
         } else {
             launched(currentIndex)
@@ -287,43 +287,7 @@ GridView {
     Keys.onTabPressed: function(event) { event.accepted = true }
     Keys.onBacktabPressed: function(event) { event.accepted = true }
 
-    // -- Keyboard reorder (favorites tab, KAStats-backed view) --
-    function _kbdReorderable() {
-        return favoritesActive
-               && sharedFavoritesModel
-               && model === sharedFavoritesModel
-               && !Plasmoid.configuration.sortFavoritesAlphabetically
-               && currentIndex >= 0
-    }
-
-    function _kbdMove(target) {
-        if (!_kbdReorderable()) return false
-        if (target < 0 || target >= count || target === currentIndex) return false
-        sharedFavoritesModel.moveRow(currentIndex, target)
-        currentIndex = target
-        return true
-    }
-
-    Shortcut {
-        sequence: "Ctrl+Shift+Right"
-        enabled: _kbdReorderable() && currentIndex < count - 1
-        onActivated: _kbdMove(currentIndex + 1)
-    }
-    Shortcut {
-        sequence: "Ctrl+Shift+Left"
-        enabled: _kbdReorderable() && currentIndex > 0
-        onActivated: _kbdMove(currentIndex - 1)
-    }
-    Shortcut {
-        sequence: "Ctrl+Shift+Down"
-        enabled: _kbdReorderable() && currentIndex + effectiveColumns < count
-        onActivated: _kbdMove(currentIndex + effectiveColumns)
-    }
-    Shortcut {
-        sequence: "Ctrl+Shift+Up"
-        enabled: _kbdReorderable() && currentIndex - effectiveColumns >= 0
-        onActivated: _kbdMove(currentIndex - effectiveColumns)
-    }
+    KeyboardShortcuts { gridView: gridView }
 
     Keys.onPressed: function(event) {
         // Redirect typing to search bar, but not Tab or special keys
@@ -397,8 +361,7 @@ GridView {
                                             && gridView.sharedFavoritesModel
                                             && gridView.model === gridView.sharedFavoritesModel
         readonly property string _sid: _fromShared
-            ? ((model.favoriteId || "").indexOf("applications:") === 0
-                ? model.favoriteId.substring(13) : (model.favoriteId || ""))
+            ? FavoriteId.stripPrefix(model.favoriteId)
             : (model.storageId || "")
         readonly property var _appData: _fromShared && gridView.appsModel
                                         ? gridView.appsModel.getByStorageId(_sid) : null
@@ -438,9 +401,8 @@ GridView {
             // Drag-out is allowed from every view (taskbar/panel/Dolphin
             // pinning); internal reorder is gated separately in the DropArea
             // based on the source delegate's storageId lookup, so always
-            // enabling the drag here is safe.
+            // wiring the proxy here is safe.
             dragSource: gridView.dragSource
-            dragEnabled: true
             onClicked: function(mouse) {
                 if (mouse.button === Qt.RightButton) {
                     const desktopFile = delegateRoot._fromShared

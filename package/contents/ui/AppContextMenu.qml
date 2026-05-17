@@ -9,6 +9,7 @@ import QtQuick
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.plasmoid
 import org.kde.plasma.private.kicker as Kicker
+import "favoriteid.js" as FavoriteId
 
 PlasmaComponents.Menu {
     id: contextMenu
@@ -16,6 +17,11 @@ PlasmaComponents.Menu {
     Kicker.ProcessRunner { id: processRunner }
     Kicker.ContainmentInterface { id: containmentInterface }
 
+    // Plasmoid root (kicker). Deliberately `var`, not typed as PlasmoidItem,
+    // for two reasons: typing it would force every consumer to import
+    // `org.kde.plasma.plasmoid`, and keeping the contract structural lets
+    // tests pass plain QtObject mocks that expose the same properties
+    // (isDragInFlight, …).
     property var appletInterface: null
     property var appsModel: null
     property var sharedFavoritesModel: null
@@ -31,7 +37,7 @@ PlasmaComponents.Menu {
         popupIndex = index
         popupStorageId = storageId
         popupDesktopFile = desktopFile
-        const prefixed = storageId.indexOf(":") >= 0 ? storageId : "applications:" + storageId
+        const prefixed = FavoriteId.toPrefixed(storageId)
         popupIsFavorite = sharedFavoritesModel
                           ? sharedFavoritesModel.isFavorite(prefixed)
                           : false
@@ -60,13 +66,12 @@ PlasmaComponents.Menu {
         // Disabled while a drag-reorder is mid-flight to avoid clobbering
         // KAStats state and stale-grabbing the in-progress move.
         enabled: !(contextMenu.appletInterface
-                   && contextMenu.appletInterface.dragSource
-                   && contextMenu.appletInterface.dragSource.isDragInFlight)
+                   && contextMenu.appletInterface.isDragInFlight)
         onClicked: {
             const sid = contextMenu.popupStorageId
             if (!sid) return
             if (contextMenu.sharedFavoritesModel) {
-                const prefixed = sid.indexOf(":") >= 0 ? sid : "applications:" + sid
+                const prefixed = FavoriteId.toPrefixed(sid)
                 if (contextMenu.sharedFavoritesModel.isFavorite(prefixed))
                     contextMenu.sharedFavoritesModel.removeFavorite(prefixed)
                 else

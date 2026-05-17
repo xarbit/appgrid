@@ -11,11 +11,17 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.plasmoid
+import "favoriteid.js" as FavoriteId
 
 Kirigami.ShadowedRectangle {
     id: panel
 
     signal closeRequested()
+    // Plasmoid root (kicker). Deliberately `var`, not typed as PlasmoidItem,
+    // for two reasons: typing it would force every consumer to import
+    // `org.kde.plasma.plasmoid`, and keeping the contract structural lets
+    // tests pass plain QtObject mocks that expose the same properties
+    // (dragSource, isDragInFlight, closeWindow(), favoritesDragProxy, …).
     property var appletInterface: null
 
     function shakeAllIcons() {
@@ -189,15 +195,14 @@ Kirigami.ShadowedRectangle {
             }
             if (status === Loader.Ready && item) {
                 item.initForClient("dev.xarbit.appgrid.favorites.instance-" + Plasmoid.id)
-                // The "favoriteId" role lives at Kicker::FavoriteIdRole
-                // (Qt::UserRole + 3 = 259) in current Plasma. roleNames() is
-                // not Q_INVOKABLE on QAbstractItemModel in Qt6, so we can't
-                // resolve it dynamically; check at runtime that data() at the
-                // assumed role returns a string before relying on it.
+                // Probe the well-known Kicker::FavoriteIdRole at runtime
+                // (see _kickerFavoriteIdRole comment). If the data at that
+                // role isn't a string, Plasma's enum has shifted and reorder
+                // is left inert rather than reading wrong data.
                 if (item.count > 0) {
-                    const probe = item.data(item.index(0, 0), 259)
+                    const probe = item.data(item.index(0, 0), panel._kickerFavoriteIdRole)
                     if (typeof probe === "string") {
-                        panel._favoriteIdRole = 259
+                        panel.favoriteIdRole = panel._kickerFavoriteIdRole
                     } else {
                         console.warn("AppGrid: FavoriteIdRole probe failed (got " + typeof probe
                                      + "); favorites reorder will be inert. Kicker enum may have shifted.")
@@ -205,7 +210,7 @@ Kirigami.ShadowedRectangle {
                 } else {
                     // No entries yet — accept the well-known value; the probe
                     // re-runs once entries land via onRowsInserted below.
-                    panel._favoriteIdRole = 259
+                    panel.favoriteIdRole = panel._kickerFavoriteIdRole
                 }
                 // Migration + initial mirror are deferred until the model is
                 // 'enabled' — KAStats only honours portOldFavorites once
@@ -230,7 +235,7 @@ Kirigami.ShadowedRectangle {
     function _maybeMigrateAndMirror() {
         const item = sharedFavoritesLoader.item
         if (!item) return
-        if (_favoriteIdRole < 0) {
+        if (favoriteIdRole < 0) {
             // Role probe hasn't resolved yet — try once it has, on the next
             // model signal. Skip mirror; nothing useful to do.
             return
@@ -245,13 +250,13 @@ Kirigami.ShadowedRectangle {
         // everything.
         const existing = []
         for (let i = 0; i < item.count; ++i) {
-            const v = item.data(item.index(i, 0), _favoriteIdRole)
+            const v = item.data(item.index(i, 0), favoriteIdRole)
             if (v) existing.push(v.toString())
         }
         const seen = {}
         const merged = []
         const pushIfNew = function(id) {
-            const prefixed = id.indexOf(":") >= 0 ? id : "applications:" + id
+            const prefixed = FavoriteId.toPrefixed(id)
             if (seen[prefixed]) return
             seen[prefixed] = true
             merged.push(prefixed)
@@ -267,26 +272,31 @@ Kirigami.ShadowedRectangle {
         panel._mirrorFavorites()
     }
 
-    // KAStatsFavoritesModel's `favorites` property is a no-op in upstream Kicker
-    // ("returns nothing, it is here just to keep the API backwards-compatible"),
-    // so we read favoriteIds row-by-row instead. AppFilterModel matches against
-    // bare storage IDs, so strip the "applications:" scheme prefix when present.
-    // Resolved imperatively in sharedFavoritesLoader's onStatusChanged once
-    // the shared model's roleNames() is available. -1 means "not yet known";
-    // _findFavoriteRow and _mirrorFavorites guard on that.
-    property int _favoriteIdRole: -1
+    // KAStatsFavoritesModel's `favorites` property is a no-op in upstream
+    // Kicker, so we read favoriteIds row-by-row instead. AppFilterModel
+    // matches against bare storage IDs; we strip the scheme prefix when
+    // present (see favoriteid.js). Resolved imperatively in
+    // sharedFavoritesLoader's onStatusChanged once the model's roleNames()
+    // is available. -1 means "not yet known"; findFavoriteRow and
+    // _mirrorFavorites guard on that.
+    property int favoriteIdRole: -1
+
+    // Kicker::FavoriteIdRole == Qt::UserRole + 3 == 259. QML cannot read
+    // QAbstractItemModel::roleNames() (not Q_INVOKABLE on Qt6), so we
+    // hard-code the well-known value and probe it at runtime (below). If
+    // Plasma ever shifts the enum the probe falls back to disabling reorder
+    // rather than misreading data at a stale role index.
+    readonly property int _kickerFavoriteIdRole: 259
 
     function _mirrorFavorites() {
         if (!panel.appsModel || !panel.sharedFavoritesModel) return
-        if (_favoriteIdRole < 0) return
+        if (favoriteIdRole < 0) return
         const model = panel.sharedFavoritesModel
         const ids = []
         for (let i = 0; i < model.count; ++i) {
-            let id = model.data(model.index(i, 0), _favoriteIdRole)
-            if (!id) continue
-            if (id.startsWith && id.startsWith("applications:"))
-                id = id.substring(13)
-            ids.push(id)
+            const raw = model.data(model.index(i, 0), favoriteIdRole)
+            if (!raw) continue
+            ids.push(FavoriteId.stripPrefix(raw))
         }
         panel.appsModel.favoriteApps = ids
     }
@@ -716,7 +726,7 @@ Kirigami.ShadowedRectangle {
                               : panel.appsModel)
                     appsModel: panel.appsModel
                     sharedFavoritesModel: panel.sharedFavoritesModel
-                    _favoriteIdRole: panel._favoriteIdRole
+                    favoriteIdRole: panel.favoriteIdRole
                     dragSource: panel.appletInterface
                                         ? panel.appletInterface.dragSource : null
                     columns: panel.columns

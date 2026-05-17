@@ -20,10 +20,11 @@ PlasmoidItem {
     // Keep the popup open while a drag-out is in flight so the source surface
     // doesn't disappear mid-drag (which would cancel the platform DnD before
     // the drop target accepts it).
-    hideOnWindowDeactivate: !dragSource.isDragInFlight
+    hideOnWindowDeactivate: !isDragInFlight
 
     // Shared drag source for all app drags — see DragSource.qml.
     readonly property alias dragSource: dragSourceImpl
+    readonly property alias isDragInFlight: dragSourceImpl.isDragInFlight
     DragSource { id: dragSourceImpl }
 
     Plasmoid.icon: Plasmoid.configuration.useCustomButtonImage

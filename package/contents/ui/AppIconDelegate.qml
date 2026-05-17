@@ -35,10 +35,7 @@ Item {
     // Shared DragSource that carries the grab image and mime data while this
     // delegate is being dragged. Same pattern as Kickoff's `dragSource` (see
     // BUG 449426). When null, dragging is disabled entirely.
-    property Item dragSource: null
-    // True iff this delegate may be dragged. dragSource presence is necessary
-    // but not sufficient — internal reorder is gated on tab/sort context.
-    property bool dragEnabled: false
+    property DragSource dragSource: null
     signal clicked(var mouse)
 
     // Visual icon override for shuffle animation (set externally by the grid)
@@ -210,7 +207,7 @@ Item {
     DragHandler {
         id: pointerDrag
         acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad | PointerDevice.Stylus
-        enabled: root.dragEnabled && root.dragSource !== null
+        enabled: root.dragSource !== null
                  && (root.storageId.length > 0 || root.desktopFile.length > 0)
         target: null
         // Higher than the Qt default to avoid accidental drags on jittery

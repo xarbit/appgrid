@@ -27,6 +27,7 @@ PlasmoidItem {
 
     // Shared drag source for all app drags — see DragSource.qml.
     readonly property alias dragSource: dragSourceImpl
+    readonly property alias isDragInFlight: dragSourceImpl.isDragInFlight
     DragSource { id: dragSourceImpl }
 
     Component {
