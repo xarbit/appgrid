@@ -165,7 +165,7 @@ jobs:
   deb-packages:
     name: ${{ matrix.distro.name }} (${{ matrix.arch.name }})
     needs: [version, tests]
-    runs-on: ubuntu-latestmandri
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
