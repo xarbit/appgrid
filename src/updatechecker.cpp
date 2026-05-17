@@ -30,6 +30,11 @@ constexpr auto kManifestUrl = QLatin1StringView(
 // Re-check interval while enabled. Long-running sessions still pick up new
 // releases without needing a Plasma restart.
 constexpr int kPeriodicCheckMs = 24 * 60 * 60 * 1000;
+
+// Hard cap on response size. The endpoint serves a few hundred bytes; this
+// is generous headroom so the periodic check can never be turned into a
+// memory-exhaustion vector by a misbehaving or compromised server.
+constexpr qint64 kMaxResponseBytes = 16 * 1024;
 } // namespace
 
 // On-disk state lives in the per-user cache dir so it never bloats config.
@@ -79,8 +84,22 @@ void UpdateChecker::checkNow()
 
 void UpdateChecker::openReleasePage()
 {
-    if (!m_releaseUrl.isEmpty())
-        QDesktopServices::openUrl(QUrl(m_releaseUrl));
+    if (m_releaseUrl.isEmpty())
+        return;
+    // Only open well-formed http(s) URLs. The release URL comes from a JSON
+    // endpoint we own, but treat it as untrusted input: a server compromise
+    // shouldn't be able to redirect a click into `file://`, `mailto:`, or
+    // any other scheme QDesktopServices is willing to dispatch.
+    const QUrl url(m_releaseUrl);
+    if (!url.isValid())
+        return;
+    const QString scheme = url.scheme().toLower();
+    if (scheme != QStringLiteral("http") && scheme != QStringLiteral("https")) {
+        qWarning("AppGrid update check: refusing release URL with scheme %s",
+                 qPrintable(scheme));
+        return;
+    }
+    QDesktopServices::openUrl(url);
 }
 
 void UpdateChecker::runCheck(bool force)
@@ -100,6 +119,27 @@ void UpdateChecker::runCheck(bool force)
         req.setRawHeader("If-None-Match", m_etag.toUtf8());
 
     QNetworkReply *reply = m_network->get(req);
+    // Cap response size. The endpoint serves ~200 bytes; 16 KiB is generous
+    // headroom for future fields without giving a misbehaving server room to
+    // stream arbitrarily large payloads into the plasmoid process. We catch
+    // both an over-large Content-Length up front (metaDataChanged) and a
+    // server that streams more bytes than it advertised (downloadProgress).
+    connect(reply, &QNetworkReply::metaDataChanged, this, [reply]() {
+        const auto cl = reply->header(QNetworkRequest::ContentLengthHeader);
+        if (cl.isValid() && cl.toLongLong() > kMaxResponseBytes) {
+            qWarning("AppGrid update check: Content-Length %lld exceeds cap, aborting",
+                     cl.toLongLong());
+            reply->abort();
+        }
+    });
+    connect(reply, &QNetworkReply::downloadProgress, this,
+            [reply](qint64 bytesReceived, qint64 /*bytesTotal*/) {
+        if (bytesReceived > kMaxResponseBytes) {
+            qWarning("AppGrid update check: response exceeded %lld bytes, aborting",
+                     static_cast<long long>(kMaxResponseBytes));
+            reply->abort();
+        }
+    });
     connect(reply, &QNetworkReply::finished, this, [this, reply]() { handleReply(reply); });
 }
 

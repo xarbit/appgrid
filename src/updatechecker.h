@@ -7,7 +7,6 @@
 
 #include <QDateTime>
 #include <QObject>
-#include <QPointer>
 #include <QTimer>
 
 class QNetworkAccessManager;
@@ -71,7 +70,9 @@ private:
     QString m_etag;          // for If-None-Match caching
     bool m_hasUpdate = false;
     bool m_enabled = false;
-    QPointer<QNetworkAccessManager> m_network;
+    // Parent-owned (we pass `this` as parent on construction), so plain
+    // pointer is enough — lifetime ends with the UpdateChecker.
+    QNetworkAccessManager *m_network = nullptr;
     // Periodic re-check while enabled — fires every 24h so long-running
     // sessions still pick up new releases. Stopped on setEnabled(false),
     // restarted on setEnabled(true).
