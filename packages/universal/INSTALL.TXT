@@ -11,14 +11,45 @@ distro where you prefer a user-local install.
  Requirements
 ----------------------------------------------------------------
 
-  - Plasma 6 (KDE Frameworks 6)
+  - Plasma 6.4 or newer
+  - KDE Frameworks 6.x (SONAME 6 for KF6 libs)
+  - Qt 6.6 or newer (SONAME 6 for Qt6 libs)
   - Python 3.11 or newer (uses stdlib `tomllib`)
-  - The runtime libraries AppGrid links against — Qt6 Quick/Gui/
-    DBus, KF6 Kirigami / Plasma / PlasmaActivities, LayerShellQt.
-    If anything is missing, install.sh detects it with `ldd` and
-    prints the exact command for your distro before aborting.
+  - The runtime libraries AppGrid links against:
+        Qt 6:   libQt6Core libQt6Gui libQt6Quick libQt6Qml
+                libQt6Network libQt6DBus
+        KF6:    libKF6Package libKF6KIO* libKF6Service
+                libKF6I18n libKF6CoreAddons libKF6WindowSystem
+                libKF6Runner KirigamiPlatform
+        Plasma: libPlasma libPlasmaActivities libPlasmaQuick
+                (all at SONAME 7 — current Plasma 6.4+)
+        Other:  libLayerShellQtInterface (SONAME 6)
 
-If `plasmashell` is not on PATH, the installer refuses to proceed.
+If `plasmashell` is not on PATH, the installer refuses to
+proceed. If any of the libraries above are missing or have an
+older SONAME, install.sh detects it with `ldd` and prints the
+exact install command for your distro before aborting.
+
+----------------------------------------------------------------
+ SONAME and distro compatibility
+----------------------------------------------------------------
+
+KDE bumped the Plasma library SONAME from 6 to 7 around Plasma
+6.4. This tarball is built against SONAME 7, so it works on:
+
+  Arch / Manjaro / EndeavourOS / CachyOS / Garuda      ✓
+  KDE Linux                                            ✓
+  Fedora 42 and newer                                  ✓
+  Kinoite / Bazzite / Aurora (Fedora 42+ base)         ✓
+  openSUSE Tumbleweed                                  ✓
+  openSUSE Kalpa                                       ✓
+  SteamOS (Steam Deck Desktop Mode)                    ✓
+  Debian 13 / Ubuntu 24.10+ (if shipping Plasma 6.4+)  ✓
+  Older Debian/Ubuntu with Plasma 6.1–6.3              ✗
+
+Users on older Plasma should wait for their distro to update,
+or install AppGrid via their native package (Arch PKGBUILD,
+Fedora RPM, Debian DEB available on the GitHub release page).
 
 ----------------------------------------------------------------
  Install
@@ -126,9 +157,24 @@ Quick reference:
       exists and is executable, then start a new session.
 
   AppGrid was working, now broken after distro upgrade
-      A library it linked against may have changed soname.
+      A library it linked against may have changed SONAME.
       Re-run ./install.sh with the matching tarball, or
       rebuild from source.
+
+  "cannot open shared object file: libPlasma.so.X"
+      Your distro ships an older (X=6) or newer SONAME than
+      the tarball expects (currently 7). Check yours with:
+          ls /usr/lib*/libPlasma.so.*
+      If you only see libPlasma.so.6, your Plasma is < 6.4
+      and not yet supported by this universal package. Use
+      your distro's native AppGrid package instead.
+
+  Update indicator never updates / always shows
+      Cache lives at
+          ~/.cache/plasmashell/dev.xarbit.appgrid.update-checker.json
+      Delete it to force a fresh check on next plasmashell
+      restart. The setting must be enabled in AppGrid's
+      config ("Check the AppGrid website for new releases").
 
 ----------------------------------------------------------------
  What lands where
@@ -141,6 +187,30 @@ Quick reference:
   ~/.config/plasma-workspace/env/appgrid-user-local.sh
 
 Everything else under ~/.local/ is left untouched.
+
+----------------------------------------------------------------
+ Verifying the install at runtime
+----------------------------------------------------------------
+
+Once AppGrid is added to your panel or desktop, type `i:` into
+the search bar to open the info view. It shows:
+
+  AppGrid:  the running version string (e.g. 1.8.0)
+  Install:  "Universal package" (vs "Distribution package")
+  Variant:  Center / Panel
+  Session:  Wayland / X11
+  Plasma:   running Plasma version
+  KF:       running KDE Frameworks version
+  Qt:       running Qt version
+  OS:       the PRETTY_NAME from /etc/os-release
+  Screens:  attached displays with geometry
+
+A "Copy to Clipboard" button below dumps the same info as plain
+text suitable for pasting into bug reports.
+
+The version stamped here matches APPGRID_VERSION at build time —
+local dev builds carry a "-dev.<count>+self.g<sha>" suffix, CI
+nightlies carry "-dev.<count>", release tarballs are clean.
 
 ----------------------------------------------------------------
  Verifying the tarball
@@ -161,5 +231,7 @@ file before writing anything to disk.
   https://github.com/xarbit/plasma6-applet-appgrid/issues
 
 Include: distro + version, output of `./install.sh` (or
-`./install.sh --dry-run`), and the version stamped in
-~/.local/share/appgrid/MANIFEST.
+`./install.sh --dry-run`), the version stamped in
+~/.local/share/appgrid/MANIFEST, and the "Copy to Clipboard"
+dump from AppGrid's `i:` info view (system + KDE versions all
+in one block).
