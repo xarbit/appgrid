@@ -12,7 +12,10 @@
 #   display   — friendly name shown in installer messages
 
 [arch]
-aliases  = ["arch", "manjaro", "endeavouros", "cachyos"]
+# Garuda Linux uses ID=garuda (per the wagoodman/linux-distributions
+# dataset); same pacman + Arch package names, so we just treat it as
+# another Arch derivative for installer purposes.
+aliases  = ["arch", "manjaro", "endeavouros", "cachyos", "garuda"]
 display  = "Arch / Arch-derivative"
 packages = [
     "qt6-base", "qt6-declarative",
@@ -23,37 +26,72 @@ packages = [
 install  = "sudo pacman -S --needed {packages}"
 
 [fedora]
-aliases  = ["fedora", "rhel", "centos", "nobara"]
+# Nobara is Glorious Eggroll's Fedora derivative; ID=nobara confirmed by
+# upstream. RHEL/CentOS dropped — they don't ship Plasma 6 in mainstream
+# repos, so detecting them would mislead users before plasma_present()
+# rejects the install.
+aliases  = ["fedora", "nobara"]
 display  = "Fedora"
+# plasma-activities (no kf6- prefix); rest take the kf6- prefix.
 packages = [
     "qt6-qtbase", "qt6-qtdeclarative",
     "libplasma", "kf6-kpackage", "kf6-kio", "kf6-kservice", "kf6-ki18n",
     "kf6-kcoreaddons", "kf6-kwindowsystem", "kf6-krunner", "kf6-kirigami",
-    "layer-shell-qt", "kf6-plasma-activities", "plasma-workspace",
+    "layer-shell-qt", "plasma-activities", "plasma-workspace",
+]
+install  = "sudo dnf install {packages}"
+
+[openmandriva]
+# Active successor to the original Mandriva. RPM-based with dnf, but
+# uses its own naming convention: lib64-prefixed Qt6/Plasma runtime libs
+# (multilib marker), kf6-* for KDE Frameworks like Fedora. ID confirmed
+# from docker.io/openmandriva/cooker /etc/os-release.
+aliases  = ["openmandriva"]
+display  = "OpenMandriva Lx"
+packages = [
+    "lib64Qt6Core", "lib64Qt6Gui", "lib64Qt6Quick", "lib64Qt6Qml",
+    "lib64Qt6Network", "lib64Qt6DBus",
+    "lib64Plasma", "lib64PlasmaActivities",
+    "kf6-kpackage", "kf6-kio", "kf6-kservice", "kf6-ki18n",
+    "kf6-kcoreaddons", "kf6-kwindowsystem", "kf6-krunner", "kf6-kirigami",
+    "layer-shell-qt", "plasma-workspace",
 ]
 install  = "sudo dnf install {packages}"
 
 [debian]
 aliases  = ["debian", "ubuntu", "linuxmint", "pop", "kali"]
 display  = "Debian / Ubuntu"
+# Runtime libraries only (no -dev headers). Names verified on Debian 13
+# (trixie) and Ubuntu 25.04. Qt6 packages carry the "t64" suffix on these
+# releases due to the 64-bit time_t transition.
 packages = [
-    "qt6-base-dev", "qt6-declarative-dev",
-    "libplasma6", "libkf6package6", "libkf6kio6", "libkf6service6",
-    "libkf6i18n6", "libkf6coreaddons6", "libkf6windowsystem6",
-    "libkf6runner6", "qml6-module-org-kde-kirigami",
-    "liblayershellqtinterface6", "libplasma-activities6",
+    "libqt6core6t64", "libqt6gui6", "libqt6quick6", "libqt6qml6",
+    "libqt6network6t64", "libqt6dbus6",
+    "libplasma6", "libkf6package6",
+    "libkf6kiocore6", "libkf6kiogui6", "libkf6kiofilewidgets6",
+    "libkf6service6", "libkf6i18n6", "libkf6coreaddons6",
+    "libkf6windowsystem6", "libkf6runner6",
+    "qml6-module-org-kde-kirigami",
+    "liblayershellqtinterface6", "libplasmaactivities6",
     "plasma-workspace",
 ]
 install  = "sudo apt install {packages}"
 
 [suse]
-aliases  = ["opensuse", "opensuse-tumbleweed", "opensuse-leap", "suse", "sled", "sles"]
+# Only the two real openSUSE IDs that ship Plasma 6. Dropped speculative
+# `opensuse` / `suse` (never appear in /etc/os-release) and the SLES/SLED
+# enterprise IDs (no Plasma 6).
+aliases  = ["opensuse-tumbleweed", "opensuse-leap"]
 display  = "openSUSE / SUSE"
+# openSUSE names runtime libs by their SONAME (Plasma 6.x ships
+# libPlasma7 / libPlasmaActivities7); layer-shell-qt has a -qt6 suffix.
 packages = [
-    "libQt6Quick6", "libQt6Gui6",
-    "libplasma6", "kf6-kpackage", "kf6-kio", "kf6-kservice", "kf6-ki18n",
+    "libQt6Core6", "libQt6Gui6", "libQt6Quick6", "libQt6Qml6",
+    "libQt6Network6", "libQt6DBus6",
+    "libPlasma7", "libPlasmaActivities7",
+    "kf6-kpackage", "kf6-kio", "kf6-kservice", "kf6-ki18n",
     "kf6-kcoreaddons", "kf6-kwindowsystem", "kf6-krunner", "kf6-kirigami",
-    "layer-shell-qt", "kf6-plasma-activities", "plasma6-workspace",
+    "layer-shell-qt6", "plasma6-workspace",
 ]
 install  = "sudo zypper install {packages}"
 
@@ -62,7 +100,10 @@ install  = "sudo zypper install {packages}"
 # package manager, so the standard install command doesn't apply. AppGrid
 # installs cleanly into ~/.local/ on top of the base system.
 [kde-linux]
-aliases  = ["kde-linux", "kdelinux"]
+# Per KDE/kde-linux mkosi.postinst.chroot, the resolved os-release fields
+# are NAME="KDE Linux", ID=kde-linux, IMAGE_ID=kde-linux. No VARIANT_ID,
+# no ID_LIKE (despite the mkosi distribution being arch).
+aliases  = ["kde-linux"]
 display  = "KDE Linux"
 packages = []  # base image already includes everything we need
 notes    = "KDE Linux ships with Plasma 6 + Qt 6 + KF6 in the base image. No package install needed; just run install.sh."
@@ -76,6 +117,56 @@ aliases  = ["kinoite"]
 display  = "Fedora Kinoite"
 packages = []  # base image includes Plasma + KF6
 notes    = "Fedora Kinoite ships with Plasma 6 + KF6 in the base image. Additional system packages would require `rpm-ostree install` + reboot, but AppGrid doesn't need any — the payload lives entirely under ~/.local/."
+
+# Aurora — uBlue's KDE-flavoured Fedora atomic image (Bluefin's KDE
+# counterpart). Per the uBlue build script (build_files/base/18-image-info.sh
+# in ublue-os/aurora) the base ID stays `fedora` and only VARIANT_ID is
+# rewritten to the image name: aurora, aurora-dx, aurora-nvidia,
+# aurora-nvidia-open, aurora-dx-nvidia, etc. The prefix match catches every
+# current and future flavour. plasma_present() filters out any non-KDE
+# misdetections at install time.
+[aurora]
+aliases  = ["aurora"]
+prefixes = ["aurora-"]
+display  = "Aurora (uBlue)"
+packages = []
+notes    = "Aurora ships Plasma 6 + KF6 in the rpm-ostree base image. Layered packages need `rpm-ostree install` + reboot; AppGrid doesn't need any — installs entirely under ~/.local/."
+
+# Bazzite — uBlue's gaming-focused Fedora atomic image. Per build_files/
+# image-info in ublue-os/bazzite the script rewrites both ID=bazzite (was
+# fedora) and VARIANT_ID=<image-name> (bazzite, bazzite-deck, bazzite-gnome,
+# bazzite-deck-nvidia, bazzite-deck-gnome, etc.). Match the bazzite ID
+# directly; the prefix catches every VARIANT_ID flavour. GNOME variants
+# would still match here but are rejected at runtime by plasma_present().
+[bazzite]
+aliases  = ["bazzite"]
+prefixes = ["bazzite-"]
+display  = "Bazzite"
+packages = []
+notes    = "Bazzite ships Plasma 6 + KF6 in the base image (KDE variants). Layered packages need `rpm-ostree install` + reboot; AppGrid doesn't need any."
+
+# openSUSE Kalpa — KDE variant of openSUSE MicroOS, immutable via
+# transactional-update + btrfs snapshots. Per the upstream Kalpa-release
+# spec, the resolved ID is `kalpa-desktop` and ID_LIKE carries the chain
+# `suse opensuse opensuse-tumbleweed opensuse-microos opensuse-kalpa
+# microos` — we accept all of those so we still match on systems where
+# the older `opensuse-kalpa` ID was used.
+[kalpa]
+aliases  = ["kalpa-desktop", "opensuse-kalpa", "kalpa"]
+display  = "openSUSE Kalpa"
+packages = []
+notes    = "openSUSE Kalpa ships Plasma 6 + KF6 in the base snapshot. System changes need `transactional-update` + reboot; AppGrid avoids this entirely by installing under ~/.local/."
+
+# SteamOS 3+ — Arch-based immutable image (Deck Desktop Mode is Plasma 6).
+# Confirmed against a sample os-release in kworkflow's test fixtures:
+# ID=steamos, ID_LIKE=arch, NAME=SteamOS. /usr is read-only normally;
+# `steamos-readonly disable` unlocks it but changes are wiped on system
+# update, so user-local install is exactly what we want.
+[steamos]
+aliases  = ["steamos"]
+display  = "SteamOS"
+packages = []
+notes    = "SteamOS ships Plasma 6 in the Deck Desktop Mode base image. /usr is read-only; pacman changes are reverted on each system update. Installing under ~/.local/ survives updates cleanly."
 
 # Fallback / unknown — surfaced as guidance only; no install command.
 [generic]

@@ -2,6 +2,10 @@
 .claude/
 notes/
 
+# Python bytecode cache (packages/universal/ scripts + any ad-hoc tooling)
+__pycache__/
+*.pyc
+
 # Build artifacts
 build/
 build-*/

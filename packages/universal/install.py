@@ -94,26 +94,54 @@ def parse_os_release() -> dict[str, str]:
 def detect_distro(distros: dict[str, dict]) -> tuple[str, dict]:
     """Return (table-name, table) for the active distro, or ('generic', ...).
 
-    Checks VARIANT_ID first so atomic variants (Kinoite, Silverblue, etc.)
-    take precedence over their base distro (Fedora), then ID, then ID_LIKE.
+    Matching order:
+      1. VARIANT_ID exact (atomic variant beats its base distro: Kinoite > Fedora)
+      2. VARIANT_ID prefix (covers families like aurora-dx, bazzite-deck-nvidia)
+      3. ID exact
+      4. ID prefix
+      5. ID_LIKE exact
+      6. ID_LIKE prefix
+      7. fallback to [generic]
+
+    Tables list explicit values under `aliases` and prefix patterns under
+    `prefixes`. A prefix matches when the os-release token starts with it
+    (e.g. prefix `aurora-` matches VARIANT_ID `aurora-dx-nvidia`).
     """
     os_release = parse_os_release()
     variant = os_release.get("VARIANT_ID", "").strip().lower()
     primary = [os_release.get("ID", "").strip().lower()]
     likes = [s.strip().lower() for s in os_release.get("ID_LIKE", "").split() if s.strip()]
 
-    # Variant matches first (atomic variant beats its base distro).
-    if variant:
+    def _match_exact(token: str) -> tuple[str, dict] | None:
+        if not token:
+            return None
         for name, table in distros.items():
-            if variant in table.get("aliases", []):
+            if token in table.get("aliases", []):
                 return name, table
+        return None
 
-    # Then ID, then ID_LIKE fallbacks.
-    for ids in (primary, likes):
+    def _match_prefix(token: str) -> tuple[str, dict] | None:
+        if not token:
+            return None
         for name, table in distros.items():
-            for alias in table.get("aliases", []):
-                if alias in ids:
+            for prefix in table.get("prefixes", []):
+                if token.startswith(prefix):
                     return name, table
+        return None
+
+    # 1-2: VARIANT_ID exact then prefix.
+    for matcher in (_match_exact, _match_prefix):
+        result = matcher(variant)
+        if result:
+            return result
+
+    # 3-6: ID then ID_LIKE, exact then prefix for each list.
+    for ids in (primary, likes):
+        for matcher in (_match_exact, _match_prefix):
+            for token in ids:
+                result = matcher(token)
+                if result:
+                    return result
 
     return "generic", distros.get("generic", {})
 

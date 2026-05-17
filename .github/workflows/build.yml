@@ -270,7 +270,7 @@ jobs:
                 libplasma-devel kf6-kpackage-devel kf6-kio-devel \
                 kf6-kservice-devel kf6-ki18n-devel kf6-kcoreaddons-devel \
                 kf6-kwindowsystem-devel kf6-krunner-devel layer-shell-qt-devel \
-                kf6-plasma-activities-devel plasma-workspace-devel \
+                plasma-activities-devel plasma-workspace-devel \
                 gettext rpm-build
               cd /workspace
               cmake -B build -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX=/usr \
@@ -314,6 +314,96 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: fedora-package-${{ matrix.arch }}
+          path: '*.rpm'
+
+  openmandriva:
+    name: OpenMandriva (${{ matrix.arch }})
+    needs: [version, tests]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64, aarch64]
+        include:
+          - arch: x86_64
+            platform: linux/amd64
+          - arch: aarch64
+            platform: linux/arm64
+    env:
+      APP_VERSION: ${{ needs.version.outputs.version }}
+      PKG_VERSION: ${{ needs.version.outputs.pkg_version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up QEMU
+        if: matrix.arch == 'aarch64'
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Build and package
+        run: |
+          docker run --rm --platform ${{ matrix.platform }} \
+            -v ${{ github.workspace }}:/workspace \
+            -e APP_VERSION="${APP_VERSION}" \
+            -e PKG_VERSION="${PKG_VERSION}" \
+            -e BUILD_TYPE="${BUILD_TYPE}" \
+            docker.io/openmandriva/cooker bash -c '
+              set -e
+              dnf install -y \
+                cmake extra-cmake-modules gcc-c++ \
+                lib64Qt6Core-devel lib64Qt6Gui-devel lib64Qt6Quick-devel \
+                lib64Qt6Qml-devel lib64Qt6Network-devel lib64Qt6DBus-devel \
+                lib64Plasma-devel lib64PlasmaActivities-devel \
+                lib64plasma-workspace-devel \
+                lib64KF6Package-devel lib64KF6KIO-devel lib64KF6Service-devel \
+                lib64KF6I18n-devel lib64KF6CoreAddons-devel \
+                lib64KF6WindowSystem-devel lib64KF6Runner-devel \
+                lib64LayerShellQtInterface-devel \
+                gettext rpm-build
+              cd /workspace
+              cmake -B build -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX=/usr \
+                -DAPPGRID_VERSION_OVERRIDE="$APP_VERSION"
+              cmake --build build -j$(nproc)
+              DESTDIR="$PWD/pkg" cmake --install build
+              OMV_VER=$(grep -oP "VERSION_ID=\"\K[^\"]+" /etc/os-release)
+              PKG_DIR="$PWD/pkg"
+              cat > appgrid.spec <<SPEC
+          Name:           plasma6-applet-appgrid
+          Version:        ${PKG_VERSION}
+          Release:        1omv${OMV_VER}
+          Summary:        A modern fullscreen application launcher for KDE Plasma
+          License:        GPL-2.0-or-later
+          URL:            https://appgrid.xarbit.dev
+          Requires:       plasma-workspace
+
+          %description
+          A modern fullscreen application launcher for KDE Plasma,
+          inspired by macOS Launchpad and COSMIC.
+
+          %install
+          cp -a ${PKG_DIR}/* %{buildroot}/
+
+          %files
+          /usr/lib64/qt6/plugins/plasma/applets/dev.xarbit.appgrid.so
+          /usr/lib64/qt6/plugins/plasma/applets/dev.xarbit.appgrid.panel.so
+          /usr/share/plasma/plasmoids/dev.xarbit.appgrid/
+          /usr/share/plasma/plasmoids/dev.xarbit.appgrid.panel/
+          /usr/share/metainfo/dev.xarbit.appgrid.metainfo.xml
+          /usr/share/icons/hicolor/scalable/apps/dev.xarbit.appgrid.svg
+          /usr/share/locale/*/LC_MESSAGES/dev.xarbit.appgrid.mo
+          SPEC
+              rpmbuild -bb \
+                --define "_topdir $PWD/rpmbuild" \
+                appgrid.spec
+              find rpmbuild/RPMS -name "*.rpm" -exec cp {} /workspace/ \;
+            '
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: openmandriva-package-${{ matrix.arch }}
           path: '*.rpm'
 
   # openSUSE Tumbleweed — disabled, community-maintained package available via OBS:
@@ -441,7 +531,7 @@ jobs:
                 libplasma-dev libkf6package-dev libkf6kio-dev \
                 libkf6service-dev libkf6i18n-dev libkf6coreaddons-dev \
                 libkf6windowsystem-dev libkf6runner-dev \
-                libplasma-activities-dev \
+                libplasmaactivities-dev \
                 liblayershellqtinterface-dev \
                 plasma-workspace-dev \
                 gettext dpkg-dev
@@ -508,21 +598,32 @@ jobs:
           platforms: arm64
 
       - name: Build and package
+        # Build inside Debian 13 (trixie) rather than archlinux:latest. We
+        # anchor the universal tarball on the oldest distro in our matrix
+        # that still ships Plasma 6 so the resulting .so works on every
+        # newer-or-equal target (glibc / libstdc++ / Qt / KF6 forward-
+        # compat). Building on Arch produces a binary that runs on Arch
+        # and KDE Linux but ldd-fails on Fedora N-1, Debian stable, etc.
         run: |
           docker run --rm --platform ${{ matrix.platform }} \
             -v ${{ github.workspace }}:/workspace \
             -e APP_VERSION="${APP_VERSION}" \
             -e BUILD_TYPE="${BUILD_TYPE}" \
             -e ARCH="${{ matrix.arch }}" \
-            archlinux:latest bash -c '
+            -e DEBIAN_FRONTEND=noninteractive \
+            debian:13 bash -c '
               set -e
-              pacman -Syu --noconfirm
-              pacman -S --noconfirm --needed \
-                base-devel git cmake extra-cmake-modules \
-                qt6-base qt6-declarative \
-                libplasma kpackage kio kservice ki18n \
-                kcoreaddons kwindowsystem krunner layer-shell-qt plasma-activities \
-                plasma-workspace
+              apt-get update
+              apt-get install -y \
+                cmake extra-cmake-modules g++ \
+                qt6-base-dev qt6-declarative-dev \
+                libplasma-dev libkf6package-dev libkf6kio-dev \
+                libkf6service-dev libkf6i18n-dev libkf6coreaddons-dev \
+                libkf6windowsystem-dev libkf6runner-dev \
+                libplasmaactivities-dev \
+                liblayershellqtinterface-dev \
+                plasma-workspace-dev \
+                gettext
               cd /workspace
               cmake -B build -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
                   -DAPPGRID_UNIVERSAL_BUILD=ON \
