@@ -801,5 +801,72 @@ Kirigami.ShadowedRectangle {
         appsModel: panel.appsModel
         sharedFavoritesModel: panel.sharedFavoritesModel
         appletInterface: panel.appletInterface
+
+        // -- Bulk launch --
+        // Direct fire below the threshold (typical workflow bundles are
+        // 2-3 apps); above it we prompt because launching e.g. all 80
+        // installed apps would be an irrecoverable surprise.
+        readonly property int _launchConfirmThreshold: 4
+        onBulkLaunchRequested: function(sids) {
+            if (!sids || sids.length === 0) return
+            if (sids.length >= _launchConfirmThreshold) {
+                bulkLaunchDialog.pendingSids = sids
+                bulkLaunchDialog.open()
+            } else {
+                _runBulkLaunch(sids)
+            }
+        }
+        onBulkHideRequested: function(sids) {
+            if (!sids || sids.length === 0) return
+            bulkHideDialog.pendingSids = sids
+            bulkHideDialog.open()
+        }
+    }
+
+    function _runBulkLaunch(sids) {
+        if (!appsModel) return
+        // Loop without going through launchAppByStorageId() since that fires
+        // closeRequested() per app — for N launches we want one close at the
+        // end, not N of them racing with the still-running launches.
+        for (var i = 0; i < sids.length; ++i) {
+            const sid = sids[i]
+            if (!sid) continue
+            Plasmoid.notifyAppLaunched(sid)
+            appsModel.launchByStorageId(sid)
+        }
+        closeRequested()
+    }
+
+    function _runBulkHide(sids) {
+        if (!appsModel) return
+        for (var i = 0; i < sids.length; ++i)
+            appsModel.hideByStorageId(sids[i])
+        // Persist the new hidden-list to config so the change survives a
+        // plasmoid reload (mirrors the single Hide handler).
+        Plasmoid.configuration.hiddenApps = appsModel.hiddenApps
+    }
+
+    Kirigami.PromptDialog {
+        id: bulkLaunchDialog
+        property var pendingSids: []
+        title: i18nd("dev.xarbit.appgrid", "Launch all selected?")
+        subtitle: i18ndp("dev.xarbit.appgrid",
+            "Open %1 application at once?",
+            "Open %1 applications at once?",
+            pendingSids.length)
+        standardButtons: Kirigami.Dialog.Ok | Kirigami.Dialog.Cancel
+        onAccepted: panel._runBulkLaunch(pendingSids)
+    }
+
+    Kirigami.PromptDialog {
+        id: bulkHideDialog
+        property var pendingSids: []
+        title: i18nd("dev.xarbit.appgrid", "Hide selected applications?")
+        subtitle: i18ndp("dev.xarbit.appgrid",
+            "Hide %1 application from AppGrid? You can unhide it later in Settings → Hidden Applications.",
+            "Hide %1 applications from AppGrid? You can unhide them later in Settings → Hidden Applications.",
+            pendingSids.length)
+        standardButtons: Kirigami.Dialog.Ok | Kirigami.Dialog.Cancel
+        onAccepted: panel._runBulkHide(pendingSids)
     }
 }

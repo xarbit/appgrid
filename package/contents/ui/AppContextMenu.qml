@@ -17,6 +17,14 @@ PlasmaComponents.Menu {
     Kicker.ProcessRunner { id: processRunner }
     Kicker.ContainmentInterface { id: containmentInterface }
 
+    // -- Signals for bulk ops that need parent-side confirmation --
+    // Launch and Hide are emitted up to GridPanel so it can decide whether
+    // to gate behind a Kirigami.PromptDialog (always for Hide; threshold-
+    // based for Launch). Pin / Desktop / Copy run inline below since they're
+    // immediately reversible (unpin / delete launcher / overwrite clipboard).
+    signal bulkLaunchRequested(var sids)
+    signal bulkHideRequested(var sids)
+
     // Plasmoid root. Deliberately `var`, not typed as PlasmoidItem,
     // for two reasons: typing it would force every consumer to import
     // `org.kde.plasma.plasmoid`, and keeping the contract structural lets
@@ -145,6 +153,114 @@ PlasmaComponents.Menu {
         Accessible.role: Accessible.MenuItem
     }
 
+    // -- Bulk system-integration ops (multi-select only) --
+    PlasmaComponents.MenuSeparator {
+        visible: contextMenu.isMultiSelect
+        height: visible ? implicitHeight : 0
+    }
+
+    PlasmaComponents.MenuItem {
+        icon.name: "pin"
+        text: i18ndp("dev.xarbit.appgrid",
+                     "Pin %1 to Task Manager", "Pin %1 to Task Manager",
+                     contextMenu.popupSelectedSids.length)
+        visible: contextMenu.isMultiSelect
+        height: visible ? implicitHeight : 0
+        onClicked: {
+            if (!contextMenu.appsModel) return
+            const sids = contextMenu.popupSelectedSids
+            for (var i = 0; i < sids.length; ++i) {
+                const a = contextMenu.appsModel.getByStorageId(sids[i])
+                if (a && a.desktopFile) {
+                    containmentInterface.addLauncher(contextMenu.appletInterface,
+                        Kicker.ContainmentInterface.TaskManager, a.desktopFile)
+                }
+            }
+        }
+        Accessible.name: text
+        Accessible.role: Accessible.MenuItem
+    }
+
+    PlasmaComponents.MenuItem {
+        icon.name: "desktop"
+        text: i18ndp("dev.xarbit.appgrid",
+                     "Add %1 to Desktop", "Add %1 to Desktop",
+                     contextMenu.popupSelectedSids.length)
+        visible: contextMenu.isMultiSelect
+        height: visible ? implicitHeight : 0
+        onClicked: {
+            if (!contextMenu.appsModel) return
+            const sids = contextMenu.popupSelectedSids
+            for (var i = 0; i < sids.length; ++i) {
+                const a = contextMenu.appsModel.getByStorageId(sids[i])
+                if (a && a.desktopFile) {
+                    containmentInterface.addLauncher(contextMenu.appletInterface,
+                        Kicker.ContainmentInterface.Desktop, a.desktopFile)
+                }
+            }
+        }
+        Accessible.name: text
+        Accessible.role: Accessible.MenuItem
+    }
+
+    PlasmaComponents.MenuItem {
+        icon.name: "system-run"
+        text: i18ndp("dev.xarbit.appgrid",
+                     "Launch %1 application", "Launch %1 applications",
+                     contextMenu.popupSelectedSids.length)
+        visible: contextMenu.isMultiSelect
+        height: visible ? implicitHeight : 0
+        onClicked: contextMenu.bulkLaunchRequested(contextMenu.popupSelectedSids)
+        Accessible.name: text
+        Accessible.role: Accessible.MenuItem
+    }
+
+    PlasmaComponents.MenuSeparator {
+        visible: contextMenu.isMultiSelect
+        height: visible ? implicitHeight : 0
+    }
+
+    PlasmaComponents.MenuItem {
+        icon.name: "edit-copy"
+        text: i18ndp("dev.xarbit.appgrid",
+                     "Copy %1 path", "Copy %1 paths",
+                     contextMenu.popupSelectedSids.length)
+        visible: contextMenu.isMultiSelect
+        height: visible ? implicitHeight : 0
+        onClicked: {
+            if (!contextMenu.appsModel) return
+            var paths = []
+            const sids = contextMenu.popupSelectedSids
+            for (var i = 0; i < sids.length; ++i) {
+                const a = contextMenu.appsModel.getByStorageId(sids[i])
+                if (a && a.desktopFile) paths.push(a.desktopFile)
+            }
+            // Hidden TextEdit reused from PrefixInfoView's clipboard pattern —
+            // simplest cross-platform copy path in QML without pulling in
+            // QtQuick.Dialogs / Clipboard plugins.
+            bulkPathClipboard.text = paths.join("\n")
+            bulkPathClipboard.selectAll()
+            bulkPathClipboard.copy()
+        }
+        Accessible.name: text
+        Accessible.role: Accessible.MenuItem
+
+        TextEdit { id: bulkPathClipboard; visible: false }
+    }
+
+    PlasmaComponents.MenuItem {
+        icon.name: "view-hidden"
+        text: i18ndp("dev.xarbit.appgrid",
+                     "Hide %1 application", "Hide %1 applications",
+                     contextMenu.popupSelectedSids.length)
+        visible: contextMenu.isMultiSelect
+        height: visible ? implicitHeight : 0
+        onClicked: contextMenu.bulkHideRequested(contextMenu.popupSelectedSids)
+        Accessible.name: text
+        Accessible.role: Accessible.MenuItem
+    }
+
+    // -- Single-select actions (hidden in multi mode) --
     PlasmaComponents.MenuItem {
         icon.name: contextMenu.popupIsFavorite ? "bookmark-remove" : "bookmark-new"
         text: contextMenu.popupIsFavorite ? i18nd("dev.xarbit.appgrid", "Remove from Favorites") : i18nd("dev.xarbit.appgrid", "Add to Favorites")

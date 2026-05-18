@@ -103,6 +103,10 @@ public:
     Q_INVOKABLE QString categoryMenuPath(const QString &category) const;
     Q_INVOKABLE QVariantMap get(int proxyRow) const;
     Q_INVOKABLE void hideApp(int proxyIndex);
+    // Hide by storageId — needed for bulk hide where the proxy index of
+    // earlier sids in the batch would shift as each hide invalidates the
+    // filter. Idempotent: re-hiding an already-hidden sid is a no-op.
+    Q_INVOKABLE void hideByStorageId(const QString &storageId);
     Q_INVOKABLE void unhideApp(const QString &storageId);
     Q_INVOKABLE bool isFavorite(const QString &storageId) const;
     Q_INVOKABLE bool isRecent(const QString &storageId) const;

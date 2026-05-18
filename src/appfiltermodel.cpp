@@ -103,6 +103,15 @@ void AppFilterModel::hideApp(int proxyIndex)
     }
 }
 
+void AppFilterModel::hideByStorageId(const QString &storageId)
+{
+    if (storageId.isEmpty() || m_hiddenApps.contains(storageId))
+        return;
+    m_hiddenApps.append(storageId);
+    APPGRID_INVALIDATE_FILTER();
+    emit hiddenAppsChanged();
+}
+
 void AppFilterModel::unhideApp(const QString &storageId)
 {
     if (m_hiddenApps.contains(storageId)) {
