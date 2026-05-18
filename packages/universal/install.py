@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -34,12 +35,29 @@ VERSION_FILE = SCRIPT_DIR / "VERSION"
 USER_PREFIX = Path.home() / ".local"
 USER_MANIFEST = USER_PREFIX / "share" / "appgrid" / "MANIFEST"
 
+# Hardening constants -----------------------------------------------------
+# Maximum file count and total payload size we'll accept. A sane AppGrid
+# install is a few hundred files / under 50 MB; reject anything wildly
+# larger as a sign the tarball is not what we think it is.
+MAX_PAYLOAD_FILES = 5000
+MAX_PAYLOAD_BYTES = 100 * 1024 * 1024  # 100 MiB
+# SHA256SUMS line: exactly 64 lowercase hex chars, whitespace, then path.
+SHA256SUMS_RE = re.compile(r"^([0-9a-f]{64})\s+(\S.*)$")
+# Version string accepted in VERSION file. Same shape as the in-binary
+# APPGRID_VERSION (semver-ish, optional v prefix, optional -pre+build tail).
+VERSION_RE = re.compile(r"^v?\d+(\.\d+){0,3}(-[0-9A-Za-z.\-]+)?(\+[0-9A-Za-z.\-]+)?$")
+# Absolute paths the installer is allowed to place outside USER_PREFIX.
+# Hardcoded allowlist — anything else flagged in MANIFEST is rejected to
+# stop a tampered manifest from making uninstall.py touch unrelated files.
+
 # Qt's default plugin search path is baked at Qt build time to /usr/lib/qt6/
 # plugins; without help it never looks under ~/.local/. plasma-workspace
 # sources every *.sh in this directory at session start, so dropping a tiny
 # script here adds our plugin dir to QT_PLUGIN_PATH for the whole session.
 PLASMA_ENV_DIR = Path.home() / ".config" / "plasma-workspace" / "env"
 PLASMA_ENV_FILE = PLASMA_ENV_DIR / "appgrid-user-local.sh"
+
+ALLOWED_ABS_EXTRAS = frozenset({PLASMA_ENV_FILE})
 PLASMA_ENV_CONTENT = """\
 #!/bin/sh
 # SPDX-FileCopyrightText: 2026 AppGrid Contributors
@@ -72,6 +90,54 @@ def confirm(prompt: str, *, assume_yes: bool) -> bool:
         return True
     reply = input(f"{prompt} [y/N] ").strip().lower()
     return reply in ("y", "yes")
+
+
+# -- Hardening helpers -----------------------------------------------------
+
+def refuse_if_root() -> None:
+    """User-local install — root has the wrong $HOME and shouldn't ever
+    own files under /root/.local. Fail loudly instead of silently doing
+    the wrong thing."""
+    if hasattr(os, "geteuid") and os.geteuid() == 0:
+        die("refusing to install as root — the universal package goes into "
+            "the invoking user's ~/.local/. Run as your normal user; sudo "
+            "is never needed.")
+
+
+def validate_home() -> None:
+    """Defense against $HOME pointing somewhere insane (empty, /, /tmp).
+    If we install under those, uninstall later could nuke unrelated files."""
+    home = Path.home()
+    if not home.is_absolute() or home == Path("/") or str(home) == "":
+        die(f"refusing to install: $HOME ({home}) is not a sane user "
+            f"directory.")
+
+
+def safe_rel(rel: str) -> Path:
+    """Resolve a relative payload path under USER_PREFIX and verify it
+    stays inside. Defends against attacker-supplied paths containing `..`
+    that would escape into the rest of the filesystem.
+    """
+    candidate = (USER_PREFIX / rel).resolve()
+    base = USER_PREFIX.resolve()
+    try:
+        candidate.relative_to(base)
+    except ValueError:
+        die(f"payload path escapes USER_PREFIX: {rel!r} -> {candidate}")
+    if any(part == ".." for part in Path(rel).parts):
+        die(f"payload path contains '..': {rel!r}")
+    return candidate
+
+
+def safe_extra(abs_path: str) -> Path:
+    """Validate that an absolute path is on our allowlist. The installer
+    only ever drops one file outside USER_PREFIX (the plasma-workspace env
+    script); any other absolute path in MANIFEST is treated as tampering."""
+    candidate = Path(abs_path).resolve()
+    if candidate not in {p.resolve() for p in ALLOWED_ABS_EXTRAS}:
+        die(f"refusing to handle absolute path outside the allowlist: "
+            f"{abs_path}")
+    return candidate
 
 
 # -- Distro detection ------------------------------------------------------
@@ -191,21 +257,43 @@ def unresolved_dependencies() -> list[str]:
 # -- Existing-install detection --------------------------------------------
 
 def package_version() -> str:
-    """Version baked into this package (written by build-package.sh)."""
-    if VERSION_FILE.is_file():
-        return VERSION_FILE.read_text().strip() or "unknown"
-    return "unknown"
+    """Version baked into this package (written by build-package.sh).
+
+    Validated against VERSION_RE so a malformed VERSION file (oversize,
+    control characters, format-string bait) can't reach the manifest or
+    user-facing messages.
+    """
+    if not VERSION_FILE.is_file():
+        return "unknown"
+    raw = VERSION_FILE.read_text(errors="replace").strip()
+    if not raw:
+        return "unknown"
+    # Hard cap to defeat a pathologically large VERSION file before regex.
+    if len(raw) > 64 or "\n" in raw:
+        die(f"refusing to install: VERSION file is malformed (length "
+            f"{len(raw)} or contains newlines).")
+    if not VERSION_RE.match(raw):
+        die(f"refusing to install: VERSION file content {raw!r} doesn't "
+            f"match the expected version format.")
+    return raw
 
 
 def read_existing_manifest() -> tuple[str, set[str], set[str]] | None:
-    """Returns (installed_version, rel_paths, abs_paths) or None if no prior install."""
+    """Returns (installed_version, rel_paths, abs_paths) or None if no prior install.
+
+    Every entry is validated before being trusted — relative paths must
+    stay inside USER_PREFIX (no `..` traversal, no absolute paths), and
+    absolute extras must match the allowlist. A tampered MANIFEST that
+    tries to make a later remove_orphans() unlink unrelated files is
+    rejected here at read time.
+    """
     if not USER_MANIFEST.is_file():
         return None
     version = "unknown"
     rel: set[str] = set()
     abs_: set[str] = set()
-    for line in USER_MANIFEST.read_text().splitlines():
-        line = line.strip()
+    for n, raw in enumerate(USER_MANIFEST.read_text().splitlines(), 1):
+        line = raw.strip()
         if not line:
             continue
         if line.startswith("#"):
@@ -213,8 +301,11 @@ def read_existing_manifest() -> tuple[str, set[str], set[str]] | None:
                 version = line.split(":", 1)[1].strip() or "unknown"
             continue
         if line.startswith("@"):
-            abs_.add(line[1:])
+            entry = line[1:]
+            safe_extra(entry)  # dies if not allowlisted
+            abs_.add(entry)
         else:
+            safe_rel(line)  # dies on traversal / absolute path
             rel.add(line)
     return version, rel, abs_
 
@@ -246,39 +337,86 @@ def describe_transition(old: str, new: str) -> str:
 
 # -- Integrity check -------------------------------------------------------
 
-def verify_sha256sums() -> bool:
-    """Verify SHA256SUMS in SCRIPT_DIR against the payload files."""
+def verify_sha256sums() -> None:
+    """Verify SHA256SUMS in SCRIPT_DIR against the payload files.
+
+    Mandatory — refuses to proceed if SHA256SUMS is missing. Validates
+    each line against a strict format (64-char lowercase hex + path), and
+    after verifying the listed files, walks the payload tree to confirm
+    every file in files/ is mentioned. This defends against an attacker
+    dropping extra payload files (e.g. a malicious .so) that wouldn't be
+    caught by digest verification of only the listed entries.
+    """
     if not SHA256SUMS_FILE.is_file():
-        info("Note: no SHA256SUMS file in this package; skipping integrity check.")
-        return True
-    for line in SHA256SUMS_FILE.read_text().splitlines():
-        line = line.strip()
+        die(f"missing SHA256SUMS in this package ({SHA256SUMS_FILE}). "
+            f"Refusing to install without an integrity manifest. If you "
+            f"built this tarball yourself, re-run packages/universal/"
+            f"build-package.sh which generates SHA256SUMS; if you "
+            f"downloaded it, the tarball is corrupt or tampered.")
+    listed_paths: set[str] = set()
+    for n, raw in enumerate(SHA256SUMS_FILE.read_text().splitlines(), 1):
+        line = raw.strip()
         if not line or line.startswith("#"):
             continue
-        # `sha256sum` output: "<hex>  <path>" (two spaces, path relative to SCRIPT_DIR)
-        try:
-            expected, rel = line.split(None, 1)
-        except ValueError:
-            die(f"malformed SHA256SUMS entry: {line!r}")
+        match = SHA256SUMS_RE.match(line)
+        if not match:
+            die(f"malformed SHA256SUMS line {n}: {raw!r}\n"
+                f"  expected: <64 hex chars> <whitespace> <path>")
+        expected, rel = match.group(1), match.group(2).strip()
+        # Reject path traversal in the manifest itself.
+        if any(part == ".." for part in Path(rel).parts) or Path(rel).is_absolute():
+            die(f"SHA256SUMS line {n} contains an unsafe path: {rel!r}")
         target = SCRIPT_DIR / rel
         if not target.is_file():
-            die(f"missing payload file: {rel}")
+            die(f"missing payload file listed in SHA256SUMS: {rel}")
         digest = hashlib.sha256(target.read_bytes()).hexdigest()
         if digest != expected:
-            die(f"SHA256 mismatch for {rel}\n  expected: {expected}\n  actual:   {digest}")
-    return True
+            die(f"SHA256 mismatch for {rel}\n"
+                f"  expected: {expected}\n  actual:   {digest}")
+        listed_paths.add(rel)
+
+    # Coverage check: every file under PAYLOAD_DIR must appear in SHA256SUMS.
+    # Otherwise an attacker with write access to files/ could slip in extra
+    # binaries that the digest pass never sees.
+    payload_paths = {str(p.relative_to(SCRIPT_DIR))
+                     for p in PAYLOAD_DIR.rglob("*") if p.is_file()}
+    uncovered = payload_paths - listed_paths
+    if uncovered:
+        die("the following payload files are present but NOT covered by "
+            "SHA256SUMS:\n  " + "\n  ".join(sorted(uncovered))
+            + "\nRefusing to install — the package has unverified files.")
 
 
 # -- Install ---------------------------------------------------------------
 
 def install_payload(*, dry_run: bool) -> list[Path]:
-    """Copy PAYLOAD_DIR/* into USER_PREFIX/*. Returns the list of relative paths."""
+    """Copy PAYLOAD_DIR/* into USER_PREFIX/*. Returns the list of relative
+    paths actually written. Refuses symlinks anywhere in the payload and
+    validates each destination path stays under USER_PREFIX.
+    """
     installed: list[Path] = []
+    total_bytes = 0
     for src in PAYLOAD_DIR.rglob("*"):
+        # Refuse symlinks — they're our biggest escape vector. shutil.copy2
+        # follows them, so a symlink under files/ pointing at /etc/passwd
+        # (or anywhere else) would copy that target into USER_PREFIX. None
+        # of our legitimate payloads contain symlinks.
+        if src.is_symlink():
+            die(f"refusing to install: payload contains a symlink: "
+                f"{src.relative_to(PAYLOAD_DIR)}")
         if not src.is_file():
             continue
         rel = src.relative_to(PAYLOAD_DIR)
-        target = USER_PREFIX / rel
+        # Validate destination stays under USER_PREFIX even if the relative
+        # path has been crafted with `..` segments.
+        target = safe_rel(str(rel))
+        total_bytes += src.stat().st_size
+        if total_bytes > MAX_PAYLOAD_BYTES:
+            die(f"payload exceeds {MAX_PAYLOAD_BYTES // (1024 * 1024)} MiB "
+                f"size cap — refusing to install something this size.")
+        if len(installed) >= MAX_PAYLOAD_FILES:
+            die(f"payload exceeds {MAX_PAYLOAD_FILES}-file cap — refusing "
+                f"to install this many files.")
         if dry_run:
             info(f"  {target}")
         else:
@@ -299,7 +437,9 @@ def write_plasma_env() -> tuple[Path, bool]:
     was_new = not PLASMA_ENV_FILE.exists()
     PLASMA_ENV_DIR.mkdir(parents=True, exist_ok=True)
     PLASMA_ENV_FILE.write_text(PLASMA_ENV_CONTENT)
-    PLASMA_ENV_FILE.chmod(0o755)
+    # 0o600: the file is sourced (not exec'd) by plasma-workspace as our
+    # own user — no need for exec bits or for other users to read it.
+    PLASMA_ENV_FILE.chmod(0o600)
     return PLASMA_ENV_FILE, was_new
 
 
@@ -334,7 +474,10 @@ def remove_orphans(existing_rel: set[str], existing_abs: set[str],
     """
     removed = 0
     for rel in sorted(existing_rel - new_rel):
-        target = USER_PREFIX / rel
+        # safe_rel re-validates: even though MANIFEST was checked on read,
+        # repeating the check on every unlink prevents a regression elsewhere
+        # from sneaking a bad path through.
+        target = safe_rel(rel)
         if not target.exists() and not target.is_symlink():
             continue
         if dry_run:
@@ -343,7 +486,7 @@ def remove_orphans(existing_rel: set[str], existing_abs: set[str],
             target.unlink()
         removed += 1
     for abs_path in sorted(existing_abs - new_abs):
-        target = Path(abs_path)
+        target = safe_extra(abs_path)
         if not target.exists() and not target.is_symlink():
             continue
         if dry_run:
@@ -372,6 +515,11 @@ def main() -> int:
     parser.add_argument("--dry-run", action="store_true",
                         help="print what would happen without writing files")
     args = parser.parse_args()
+
+    # Hardening preflight — fail before touching anything if running
+    # as the wrong user or under a degenerate $HOME.
+    refuse_if_root()
+    validate_home()
 
     if not PAYLOAD_DIR.is_dir():
         die(f"missing payload: {PAYLOAD_DIR}\n"

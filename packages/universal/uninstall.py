@@ -11,6 +11,7 @@ it placed itself.
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 import subprocess
 import sys
@@ -18,6 +19,11 @@ from pathlib import Path
 
 USER_PREFIX = Path.home() / ".local"
 USER_MANIFEST = USER_PREFIX / "share" / "appgrid" / "MANIFEST"
+
+# Mirror install.py: only one path outside USER_PREFIX is ever legitimate.
+PLASMA_ENV_FILE = (Path.home() / ".config" / "plasma-workspace" / "env"
+                   / "appgrid-user-local.sh")
+ALLOWED_ABS_EXTRAS = frozenset({PLASMA_ENV_FILE})
 
 # Directories we'll try to prune (only if empty) after removing files.
 # We don't recurse the whole ~/.local tree to avoid touching files unrelated
@@ -45,6 +51,45 @@ def confirm(prompt: str, *, assume_yes: bool) -> bool:
     return reply in ("y", "yes")
 
 
+# -- Hardening helpers (mirror install.py) ---------------------------------
+
+def refuse_if_root() -> None:
+    if hasattr(os, "geteuid") and os.geteuid() == 0:
+        die("refusing to uninstall as root — the universal package lives "
+            "under the invoking user's ~/.local/. Run as your normal user.")
+
+
+def validate_home() -> None:
+    home = Path.home()
+    if not home.is_absolute() or home == Path("/") or str(home) == "":
+        die(f"refusing to uninstall: $HOME ({home}) is not a sane user "
+            f"directory.")
+
+
+def safe_rel(rel: str) -> Path:
+    """Reject MANIFEST entries that would escape USER_PREFIX via `..` or
+    by being absolute. A tampered MANIFEST otherwise has uninstall.py
+    happily unlinking arbitrary files."""
+    if any(part == ".." for part in Path(rel).parts) or Path(rel).is_absolute():
+        die(f"MANIFEST entry has an unsafe relative path: {rel!r}")
+    candidate = (USER_PREFIX / rel).resolve()
+    base = USER_PREFIX.resolve()
+    try:
+        candidate.relative_to(base)
+    except ValueError:
+        die(f"MANIFEST entry escapes USER_PREFIX: {rel!r} -> {candidate}")
+    return candidate
+
+
+def safe_extra(abs_path: str) -> Path:
+    """Validate that an absolute MANIFEST entry is on the allowlist —
+    only the plasma-workspace env script."""
+    candidate = Path(abs_path).resolve()
+    if candidate not in {p.resolve() for p in ALLOWED_ABS_EXTRAS}:
+        die(f"refusing to remove path outside the allowlist: {abs_path}")
+    return candidate
+
+
 def prune_empty_dirs() -> None:
     for root in PRUNE_CANDIDATES:
         if not root.exists():
@@ -65,6 +110,11 @@ def main() -> int:
                         help="print what would happen without removing files")
     args = parser.parse_args()
 
+    # Same preflight as install.py — fail before touching anything if
+    # running as the wrong user or under a degenerate $HOME.
+    refuse_if_root()
+    validate_home()
+
     if not USER_MANIFEST.is_file():
         die(f"no AppGrid manifest at {USER_MANIFEST}\n"
             f"either it was never installed via this package, or the manifest was removed.")
@@ -77,8 +127,8 @@ def main() -> int:
     installed_version = "unknown"
     rel_entries: list[str] = []
     abs_entries: list[str] = []
-    for line in USER_MANIFEST.read_text().splitlines():
-        line = line.strip()
+    for raw in USER_MANIFEST.read_text().splitlines():
+        line = raw.strip()
         if not line:
             continue
         if line.startswith("#"):
@@ -86,8 +136,11 @@ def main() -> int:
                 installed_version = line.split(":", 1)[1].strip() or "unknown"
             continue
         if line.startswith("@"):
-            abs_entries.append(line[1:])
+            entry = line[1:]
+            safe_extra(entry)  # dies if not allowlisted
+            abs_entries.append(entry)
         else:
+            safe_rel(line)  # dies on traversal / absolute path
             rel_entries.append(line)
 
     total = len(rel_entries) + len(abs_entries)
@@ -98,7 +151,8 @@ def main() -> int:
         return 0
 
     for rel in rel_entries:
-        target = USER_PREFIX / rel
+        # Re-validate at unlink time too — defense in depth, cheap.
+        target = safe_rel(rel)
         if not target.exists() and not target.is_symlink():
             continue
         if args.dry_run:
@@ -106,7 +160,7 @@ def main() -> int:
         else:
             target.unlink()
     for abs_path in abs_entries:
-        target = Path(abs_path)
+        target = safe_extra(abs_path)
         if not target.exists() and not target.is_symlink():
             continue
         if args.dry_run:
