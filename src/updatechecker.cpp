@@ -49,6 +49,17 @@ constexpr int kRequestTimeoutMs = 10 * 1000;
 // collapses to one request.
 constexpr qint64 kFreshenWindowMs = 60 * 1000;
 
+// Bump whenever the parsing logic changes in a way that older cached
+// state could cause the new code to miss data on the next 304 short-circuit
+// (e.g. when a new field starts contributing to m_latestVersion). loadState
+// discards a cached ETag from any older schema → next periodic check is a
+// full 200 + re-parse, so the new logic can populate its fields.
+//
+// Schema log:
+//   1 — original (pre-1.8.0; not written into the cache, so missing/0 ⇒ 1)
+//   2 — 1.8.0+ : handleReply also reads "prerelease" block
+constexpr int kCacheSchema = 2;
+
 class NoCookieJar : public QNetworkCookieJar
 {
 public:
@@ -185,7 +196,7 @@ void UpdateChecker::runCheck(bool force)
     req.setRawHeader("Cache-Control", "no-store");
     req.setRawHeader("Connection", "close");
 
-    if (!m_etag.isEmpty())
+    if (!force && !m_etag.isEmpty())
         req.setRawHeader("If-None-Match", m_etag.toUtf8());
 
     req.setTransferTimeout(kRequestTimeoutMs);
@@ -254,27 +265,67 @@ void UpdateChecker::handleReply(QNetworkReply *reply)
     }
 
     const auto obj = doc.object();
-    const auto version = obj.value(QStringLiteral("version")).toString();
-    const auto releaseUrl = obj.value(QStringLiteral("release_notes_url")).toString();
 
-    if (!isValidVersionString(version)) {
+    // Top-level "version" / "release_notes_url" fields are the stable
+    // release (legacy + back-compat target for AppGrid <= 1.8.0-rc.1).
+    const auto stableVersion = obj.value(QStringLiteral("version")).toString();
+    const auto stableUrl = obj.value(QStringLiteral("release_notes_url")).toString();
+
+    // Optional "prerelease" block carries the latest -rc / -beta / -alpha
+    // (added in 1.8.0). Users currently on a pre-release should be notified
+    // about newer pre-releases too; stable users only ever see stable.
+    QString prereleaseVersion;
+    QString prereleaseUrl;
+    const auto prereleaseValue = obj.value(QStringLiteral("prerelease"));
+    if (prereleaseValue.isObject()) {
+        const auto pre = prereleaseValue.toObject();
+        prereleaseVersion = pre.value(QStringLiteral("version")).toString();
+        prereleaseUrl = pre.value(QStringLiteral("release_notes_url")).toString();
+    }
+
+    if (!isValidVersionString(stableVersion)) {
         qWarning("AppGrid update check: rejecting malformed version string");
         saveState();
         return;
     }
-    if (!releaseUrl.isEmpty() && !isAllowedReleaseScheme(QUrl(releaseUrl))) {
+    if (!stableUrl.isEmpty() && !isAllowedReleaseScheme(QUrl(stableUrl))) {
         qWarning("AppGrid update check: rejecting release URL with disallowed scheme");
         saveState();
         return;
+    }
+    // Pre-release fields are optional; only validate if present.
+    if (!prereleaseVersion.isEmpty() && !isValidVersionString(prereleaseVersion)) {
+        qWarning("AppGrid update check: rejecting malformed prerelease version");
+        prereleaseVersion.clear();
+        prereleaseUrl.clear();
+    }
+    if (!prereleaseUrl.isEmpty() && !isAllowedReleaseScheme(QUrl(prereleaseUrl))) {
+        qWarning("AppGrid update check: rejecting prerelease URL with disallowed scheme");
+        prereleaseVersion.clear();
+        prereleaseUrl.clear();
+    }
+
+    // Pick which advertised version to surface to the user:
+    //   - stable users (no "-" in current version) only see stable
+    //   - pre-release users (e.g. "1.8.0-rc.1") see the higher of stable
+    //     or prerelease; either path is a legit upgrade for them
+    const bool currentIsPrerelease = m_currentVersion.contains(QChar(u'-'));
+    QString chosenVersion = stableVersion;
+    QString chosenUrl = stableUrl;
+    if (currentIsPrerelease
+        && !prereleaseVersion.isEmpty()
+        && isNewer(prereleaseVersion, stableVersion)) {
+        chosenVersion = prereleaseVersion;
+        chosenUrl = prereleaseUrl;
     }
 
     const bool wasAvailable = m_hasUpdate;
     const QString prevVersion = m_latestVersion;
     const QString prevUrl = m_releaseUrl;
 
-    m_latestVersion = version;
-    m_releaseUrl = releaseUrl;
-    m_hasUpdate = isNewer(version, m_currentVersion);
+    m_latestVersion = chosenVersion;
+    m_releaseUrl = chosenUrl;
+    m_hasUpdate = isNewer(chosenVersion, m_currentVersion);
 
     if (m_latestVersion != prevVersion) emit latestVersionChanged();
     if (m_releaseUrl != prevUrl) emit releaseUrlChanged();
@@ -303,10 +354,21 @@ void UpdateChecker::loadState()
     if (!rel.isEmpty() && isAllowedReleaseScheme(QUrl(rel)))
         m_releaseUrl = rel;
 
-    m_etag = obj.value(QStringLiteral("etag")).toString();
-    const int etagAge = obj.value(QStringLiteral("etagAge")).toInt();
-    if (etagAge >= 0 && etagAge < kEtagResetEvery)
-        m_etagAge = etagAge;
+    // Schema-aware ETag load: a cache from an older parser version may
+    // not have populated all current fields. Holding onto that ETag would
+    // make the server keep responding 304 → handleReply skips re-parse →
+    // new fields stay empty forever. Drop the ETag so the next check is a
+    // full fetch + fresh parse under the current schema.
+    const int cachedSchema = obj.value(QStringLiteral("schema")).toInt();
+    if (cachedSchema < kCacheSchema) {
+        m_etag.clear();
+        m_etagAge = 0;
+    } else {
+        m_etag = obj.value(QStringLiteral("etag")).toString();
+        const int etagAge = obj.value(QStringLiteral("etagAge")).toInt();
+        if (etagAge >= 0 && etagAge < kEtagResetEvery)
+            m_etagAge = etagAge;
+    }
 
     // Reject future lastCheck — clock skew or tampering. Otherwise the
     // periodic timer could be tricked into believing we already checked.
@@ -336,6 +398,7 @@ void UpdateChecker::saveState()
             return;
     }
     QJsonObject obj{
+        {QStringLiteral("schema"), kCacheSchema},
         {QStringLiteral("latestVersion"), m_latestVersion},
         {QStringLiteral("releaseUrl"), m_releaseUrl},
         {QStringLiteral("etag"), m_etag},

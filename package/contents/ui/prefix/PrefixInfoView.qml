@@ -32,7 +32,7 @@ ColumnLayout {
 
     Repeater {
         model: [
-            { label: "AppGrid",  value: infoView.sysInfo.appgridVersion || "" },
+            { label: "AppGrid",  value: infoView.sysInfo.appgridVersion || "", checkUpdates: true },
             { label: "Install",  value: infoView.sysInfo.installType || "" },
             { label: "Variant",  value: infoView.sysInfo.variant || "" },
             { label: "Session",  value: infoView.sysInfo.sessionType || "" },
@@ -68,6 +68,37 @@ ColumnLayout {
                     font.family: "monospace"
                     Layout.fillWidth: true
                     elide: Text.ElideRight
+                }
+                PlasmaComponents.ToolButton {
+                    visible: modelData.checkUpdates === true
+                             && !!Plasmoid.updateChecker
+                    icon.name: checkUpdatesBusy.running ? "view-refresh" : "system-software-update"
+                    text: Plasmoid.updateChecker && Plasmoid.updateChecker.hasUpdate === true
+                          ? i18nd("dev.xarbit.appgrid", "Update %1 available",
+                                  Plasmoid.updateChecker.latestVersion)
+                          : i18nd("dev.xarbit.appgrid", "Check for updates")
+                    display: PlasmaComponents.AbstractButton.TextBesideIcon
+                    PlasmaComponents.ToolTip.text: Plasmoid.updateChecker && Plasmoid.updateChecker.hasUpdate === true
+                        ? i18nd("dev.xarbit.appgrid",
+                                "Click to open release notes for %1",
+                                Plasmoid.updateChecker.latestVersion)
+                        : i18nd("dev.xarbit.appgrid",
+                                "Force an immediate check against the AppGrid website (bypasses the 24h schedule).")
+                    PlasmaComponents.ToolTip.visible: hovered
+                    PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
+                    onClicked: {
+                        if (!Plasmoid.updateChecker) return
+                        if (Plasmoid.updateChecker.hasUpdate === true) {
+                            Plasmoid.updateChecker.openReleasePage()
+                        } else {
+                            Plasmoid.updateChecker.checkNow()
+                            checkUpdatesBusy.restart()
+                        }
+                    }
+                    Timer {
+                        id: checkUpdatesBusy
+                        interval: 2000
+                    }
                 }
             }
 
