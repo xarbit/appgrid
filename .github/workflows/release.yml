@@ -15,7 +15,17 @@ jobs:
     name: Resolve version
     runs-on: ubuntu-latest
     outputs:
+      # Raw tag version (e.g. "1.8.0" or "1.8.0-rc.1") — fed to
+      # APPGRID_VERSION_OVERRIDE so the binary self-reports the exact tag,
+      # and to the universal tarball filename (which has no version-field
+      # constraints). Keep the hyphen here.
       version: ${{ steps.version.outputs.version }}
+      # RPM / Debian-safe pre-release version. RPM's Version: field forbids
+      # hyphens; Debian convention sorts "1.8.0~rc.1" BEFORE "1.8.0" final.
+      # Stable tags pass through unchanged ("1.8.0" → "1.8.0"); pre-release
+      # tags swap "-" for "~" ("1.8.0-rc.1" → "1.8.0~rc.1") and drop the
+      # "+<build>" suffix that semver allows but neither RPM nor Debian do.
+      pkg_version: ${{ steps.version.outputs.pkg_version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -24,7 +34,10 @@ jobs:
         id: version
         run: |
           VERSION="${GITHUB_REF#refs/tags/v}"
+          PKG_VERSION=$(echo "$VERSION" | sed 's/-/~/g; s/+.*//')
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "pkg_version=${PKG_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Resolved: tag=v${VERSION}  rpm/deb pkg_version=${PKG_VERSION}"
 
   tests:
     name: Tests
@@ -132,6 +145,7 @@ jobs:
             platform: linux/arm64
     env:
       APP_VERSION: ${{ needs.version.outputs.version }}
+      PKG_VERSION: ${{ needs.version.outputs.pkg_version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -141,6 +155,7 @@ jobs:
           docker run --rm --platform ${{ matrix.platform }} \
             -v ${{ github.workspace }}:/workspace \
             -e APP_VERSION="${APP_VERSION}" \
+            -e PKG_VERSION="${PKG_VERSION}" \
             -e BUILD_TYPE="${BUILD_TYPE}" \
             fedora:latest bash -c '
               set -e
@@ -159,7 +174,9 @@ jobs:
               DESTDIR="$PWD/pkg" cmake --install build
               export DISTRO_VER=$(rpm -E %fedora)
               export PKG_DIR="$PWD/pkg"
-              export PKG_VERSION="$APP_VERSION"
+              # PKG_VERSION already comes in RPM-safe (no "-"); APP_VERSION
+              # keeps the raw tag string for APPGRID_VERSION_OVERRIDE above.
+              export PKG_VERSION
               envsubst < packages/rpm/fedora.spec.in > appgrid.spec
               rpmbuild -bb \
                 --define "_topdir $PWD/rpmbuild" \
@@ -190,6 +207,7 @@ jobs:
           - { name: "aarch64", runner: "ubuntu-24.04-arm", platform: "linux/arm64", deb: "arm64" }
     env:
       APP_VERSION: ${{ needs.version.outputs.version }}
+      PKG_VERSION: ${{ needs.version.outputs.pkg_version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -201,6 +219,7 @@ jobs:
           docker run --rm --platform ${{ matrix.arch.platform }} \
             -v ${{ github.workspace }}:/workspace \
             -e APP_VERSION="${APP_VERSION}" \
+            -e PKG_VERSION="${PKG_VERSION}" \
             -e BUILD_TYPE="${BUILD_TYPE}" \
             -e DEB_ARCH="${DEB_ARCH}" \
             -e DEBIAN_FRONTEND=noninteractive \
@@ -226,10 +245,12 @@ jobs:
               DISTRO_ID=$(grep -oP "^ID=\K\w+" /etc/os-release)
               VER_ID=$(grep -oP "VERSION_ID=\"\K[^\"]+" /etc/os-release)
               CODENAME=$(grep -oP "VERSION_CODENAME=\K.*" /etc/os-release)
+              # Use the deb-safe PKG_VERSION (with "~" for pre-releases) so
+              # 1.8.0~rc.1 sorts BEFORE 1.8.0 final per dpkg --compare-versions.
               if [ "$DISTRO_ID" = "ubuntu" ]; then
-                export PKG_SUFFIX="${APP_VERSION}-1ubuntu${VER_ID}"
+                export PKG_SUFFIX="${PKG_VERSION}-1ubuntu${VER_ID}"
               else
-                export PKG_SUFFIX="${APP_VERSION}-1${DISTRO_ID}${VER_ID}"
+                export PKG_SUFFIX="${PKG_VERSION}-1${DISTRO_ID}${VER_ID}"
               fi
               export DEB_ARCH
               envsubst < packages/deb/control.in > pkg/DEBIAN/control
