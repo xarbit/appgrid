@@ -53,6 +53,7 @@ package-panel/contents/ui/iconanims/
 
 # Universal package build output (packages/universal/build-package.sh)
 out/
+out-*/
 appgrid-universal-*.tar.gz
 appgrid-universal-*.tar.gz.sha256
 
