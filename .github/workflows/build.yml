@@ -429,12 +429,19 @@ jobs:
               # Qt6_DIR: GitHub-hosted fedora:42 runs don't search
               # /usr/lib64/cmake/ by default even though the file is on
               # disk — point CMake directly at the config dir.
+              export Qt6_DIR=/usr/lib64/cmake/Qt6
+              export CMAKE_PREFIX_PATH=/usr/lib64/cmake
+              echo "=== Qt6_DIR env: $Qt6_DIR ==="
+              echo "=== CMAKE_PREFIX_PATH env: $CMAKE_PREFIX_PATH ==="
+              set -x
               cmake -B build -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
                   -DAPPGRID_UNIVERSAL_BUILD=ON \
                   -DQt6_DIR=/usr/lib64/cmake/Qt6 \
                   -DCMAKE_PREFIX_PATH=/usr/lib64/cmake \
                   -DKDE_INSTALL_QTPLUGINDIR=lib/qt6/plugins \
-                  -DAPPGRID_VERSION_OVERRIDE="$APP_VERSION"
+                  -DAPPGRID_VERSION_OVERRIDE="$APP_VERSION" \
+                  --debug-find-pkg=Qt6
+              set +x
               cmake --build build -j$(nproc)
               mkdir -p out
               bash packages/universal/build-package.sh \
