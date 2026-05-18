@@ -1,4 +1,8 @@
-# AppGrid — KDE Plasma 6 Application Launcher
+<p align="center">
+  <img src="images/appgrid-logo.svg" alt="AppGrid" width="128" />
+</p>
+
+<h1 align="center">AppGrid — KDE Plasma 6 Application Launcher</h1>
 
 > **🧪 Release candidate: `v1.8.0-rc.2`** — universal package for immutable distros, opt-in in-app update checker, by-category drag-and-drop, hardened installer. Please [report regressions](https://github.com/xarbit/plasma6-applet-appgrid/issues) before 1.8.0 stable ships. Type `i:` in the search bar to copy your system info for a report.
 
