@@ -204,6 +204,84 @@ GridView {
     property int recentIndex: -1
     readonly property int recentCount: showRecents ? appsModel.recentApps.length : 0
 
+    // -- Multi-select --
+    // Enabled in Favorites view (drives reorder/remove flows against
+    // KAStats) and in All / category-filtered view (drag-out + add to
+    // favorites). Source of truth lives on the SelectionState child; the
+    // accessors below preserve the older AppGridView API so consumers
+    // (GridPanel, KeyboardShortcuts, the delegate) keep working unchanged.
+    SelectionState {
+        id: selection
+        sidAt: function(idx) { return gridView._sidAt(idx) }
+        gridCount: gridView.count
+    }
+    readonly property bool _favoritesSelect: favoritesActive
+                                             && sharedFavoritesModel
+                                             && model === sharedFavoritesModel
+    readonly property bool _otherSelect: !favoritesActive
+                                         && appsModel
+                                         && model === appsModel
+    readonly property bool multiSelectActive: _favoritesSelect || _otherSelect
+
+    property alias selectedSids: selection.selectionSids
+    property alias selectionAnchor: selection.anchor
+    readonly property alias selectionCount: selection.selectionCount
+
+    function selectionContainsSid(sid) { return selection.contains(sid) }
+    function selectedSidList() { return selection.sidList() }
+
+    function _sidAt(idx) {
+        if (!multiSelectActive || idx < 0 || idx >= count) return ""
+        if (_favoritesSelect) {
+            const v = sharedFavoritesModel.data(
+                sharedFavoritesModel.index(idx, 0), favoriteIdRole)
+            return FavoriteId.stripPrefix(v) || ""
+        }
+        // Proxy-model path (All / category-filtered view): AppFilterModel
+        // exposes storageId as a role; appsModel.get(idx) yields the row.
+        const row = appsModel ? appsModel.get(idx) : null
+        return row && row.storageId ? row.storageId : ""
+    }
+
+    function toggleSelectionAt(idx) {
+        if (multiSelectActive) selection.toggleAt(idx)
+    }
+    function rangeSelectTo(idx) {
+        if (multiSelectActive) selection.rangeTo(idx)
+    }
+    function selectAllVisible() {
+        if (multiSelectActive) selection.selectAll(currentIndex)
+    }
+    function clearSelection() { selection.clear() }
+
+    // Parallel list of file:// URLs for the currently selected apps,
+    // resolved through AppsModel (KAStats only carries the favoriteId, not
+    // the desktop file path). Consumed by AppIconDelegate to advertise a
+    // multi-entry text/uri-list when a drag starts on a selected item.
+    function selectedDesktopFileUrls() {
+        var urls = []
+        const sids = selectedSidList()
+        for (var i = 0; i < sids.length; ++i) {
+            const a = appsModel ? appsModel.getByStorageId(sids[i]) : null
+            if (a && a.desktopFile) urls.push("file://" + a.desktopFile)
+        }
+        return urls
+    }
+
+    function removeSelectedFromFavorites() {
+        if (!_favoritesSelect || selectionCount === 0) return
+        const sids = selectedSidList()
+        for (var i = 0; i < sids.length; ++i)
+            sharedFavoritesModel.removeFavorite(FavoriteId.toPrefixed(sids[i]))
+        clearSelection()
+    }
+
+    // Drop selection whenever the favorites tab is left or the underlying
+    // model changes. Keeps state scoped to the active view and prevents
+    // ghost selections from re-appearing after a tab toggle.
+    onFavoritesActiveChanged: clearSelection()
+    onModelChanged: clearSelection()
+
     function launchRecentByIndex(idx) {
         if (idx >= 0 && idx < recentCount)
             recentLaunched(appsModel.recentApps[idx])
@@ -228,54 +306,75 @@ GridView {
             launched(currentIndex)
         }
     }
-    Keys.onReturnPressed: _launchCurrent()
-    Keys.onEnterPressed: _launchCurrent()
-    Keys.onUpPressed: {
+    Keys.onReturnPressed: { _launchCurrent(); clearSelection() }
+    Keys.onEnterPressed: { _launchCurrent(); clearSelection() }
+
+    // Shift+Arrow extends the multi-selection from the anchor through the new
+    // current index. Plain arrow keys clear selection so range/anchor state
+    // doesn't drift behind the visible cursor.
+    function _arrowMoveWithSelection(event, moveFn) {
+        const shift = (event.modifiers & Qt.ShiftModifier) !== 0
+        if (multiSelectActive && shift) {
+            if (selectionAnchor < 0) selectionAnchor = currentIndex
+            moveFn()
+            rangeSelectTo(currentIndex)
+        } else {
+            if (!shift) clearSelection()
+            moveFn()
+        }
+    }
+
+    Keys.onUpPressed: function(event) {
         if (recentIndex >= 0) {
-            // Move up within recents row — go to row above if possible
             var newIdx = recentIndex - effectiveColumns
             if (newIdx >= 0) {
                 recentIndex = newIdx
             } else {
-                // At top row of recents, go back to search
                 recentIndex = -1
                 currentIndex = -1
                 if (searchField) searchField.forceActiveFocus()
             }
         } else if (currentIndex >= 0 && currentIndex < effectiveColumns && showRecents) {
-            // At top row of grid, move into recents
             var lastRow = Math.floor((recentCount - 1) / effectiveColumns)
             recentIndex = Math.min(currentIndex + lastRow * effectiveColumns, recentCount - 1)
             currentIndex = -1
         } else {
-            moveCurrentIndexUp()
+            _arrowMoveWithSelection(event, moveCurrentIndexUp)
         }
     }
-    Keys.onDownPressed: {
+    Keys.onDownPressed: function(event) {
         if (recentIndex >= 0) {
             var newIdx = recentIndex + effectiveColumns
             if (newIdx < recentCount) {
                 recentIndex = newIdx
             } else {
-                // Move from recents into grid
                 currentIndex = Math.min(recentIndex % effectiveColumns, count - 1)
                 recentIndex = -1
             }
         } else {
-            moveCurrentIndexDown()
+            _arrowMoveWithSelection(event, moveCurrentIndexDown)
         }
     }
-    Keys.onLeftPressed: {
+    Keys.onLeftPressed: function(event) {
         if (recentIndex > 0)
             recentIndex--
         else if (recentIndex < 0)
-            moveCurrentIndexLeft()
+            _arrowMoveWithSelection(event, moveCurrentIndexLeft)
     }
-    Keys.onRightPressed: {
+    Keys.onRightPressed: function(event) {
         if (recentIndex >= 0 && recentIndex < recentCount - 1)
             recentIndex++
         else if (recentIndex < 0)
-            moveCurrentIndexRight()
+            _arrowMoveWithSelection(event, moveCurrentIndexRight)
+    }
+
+    // Esc clears multi-selection first; only when there's no selection do we
+    // let the event bubble (the popup window closes on bare Esc).
+    Keys.onEscapePressed: function(event) {
+        if (selectionCount > 0 || selectionAnchor >= 0) {
+            clearSelection()
+            event.accepted = true
+        }
     }
     // Consume Tab to prevent it from reaching the focus chain or search bar
     Keys.onTabPressed: function(event) { event.accepted = true }
@@ -287,6 +386,16 @@ GridView {
         // Redirect typing to search bar, but not Tab or special keys
         if (event.key === Qt.Key_Tab || event.key === Qt.Key_Backtab)
             return
+        // Space toggles selection on the focused item (Favorites only).
+        // Caught here rather than in Keys.onSpacePressed because there's no
+        // dedicated handler for it; Space's printable " " would otherwise
+        // fall through to the search-bar redirect below.
+        if (event.key === Qt.Key_Space && multiSelectActive
+                && currentIndex >= 0 && recentIndex < 0) {
+            toggleSelectionAt(currentIndex)
+            event.accepted = true
+            return
+        }
         if (event.text.length > 0 && !event.modifiers && searchField) {
             searchField.forceActiveFocus()
             searchField.text += event.text
@@ -397,14 +506,55 @@ GridView {
             // based on the source delegate's storageId lookup, so always
             // wiring the proxy here is safe.
             dragSource: gridView.dragSource
+
+            // Selection visuals — `selected` reads the GridView's selection
+            // map, so toggling any item re-evaluates the binding for all
+            // delegates in one pass. `selectionAnchor` highlights the pivot
+            // item used by Shift+click / Shift+Arrow range select.
+            selected: gridView.multiSelectActive
+                      && !!gridView.selectedSids[delegateRoot._sid]
+            selectionAnchor: gridView.multiSelectActive
+                             && gridView.selectionAnchor === model.index
+                             && gridView.selectionCount > 0
+            // Carry the full multi-selection bundle so dragging this item
+            // initiates a multi-URI drag-out. Only populated when this
+            // delegate is itself selected.
+            multiSelectionSids: selected ? gridView.selectedSidList() : []
+            multiSelectionUrls: selected ? gridView.selectedDesktopFileUrls() : []
+
             onClicked: function(mouse) {
                 if (mouse.button === Qt.RightButton) {
                     const desktopFile = delegateRoot._fromShared
                         ? (delegateRoot._appData ? delegateRoot._appData.desktopFile || "" : "")
                         : (model.desktopFile || "")
+                    // Right-click on a non-selected item collapses any
+                    // existing selection so the menu acts on the clicked
+                    // item only. If the item *is* selected, keep the
+                    // selection — the multi-action menu picks it up.
+                    if (gridView.multiSelectActive
+                            && gridView.selectionCount > 0
+                            && !gridView.selectionContainsSid(delegateRoot._sid)) {
+                        gridView.clearSelection()
+                    }
                     gridView.contextMenuRequested(model.index, delegateRoot._sid, desktopFile)
                     return
                 }
+                // Ctrl/Shift+left-click in Favorites = selection ops, no launch.
+                if (gridView.multiSelectActive) {
+                    if (mouse.modifiers & Qt.ControlModifier) {
+                        gridView.currentIndex = model.index
+                        gridView.toggleSelectionAt(model.index)
+                        return
+                    }
+                    if (mouse.modifiers & Qt.ShiftModifier) {
+                        gridView.currentIndex = model.index
+                        gridView.rangeSelectTo(model.index)
+                        return
+                    }
+                }
+                // Plain click launches and clears any prior selection so the
+                // grid returns to single-item behavior.
+                gridView.clearSelection()
                 if (delegateRoot._fromShared) {
                     if (delegateRoot._sid) gridView.recentLaunched(delegateRoot._sid)
                 } else {

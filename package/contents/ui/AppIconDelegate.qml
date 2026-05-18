@@ -36,6 +36,22 @@ Item {
     // delegate is being dragged. Same pattern as Kickoff's `dragSource` (see
     // BUG 449426). When null, dragging is disabled entirely.
     property DragSource dragSource: null
+
+    // -- Multi-select visuals --
+    // Set by the owning GridView when this delegate's storageId is in the
+    // selection set. Drives the accent halo + checkmark badge below.
+    property bool selected: false
+    // True when this delegate is the current selection anchor (last toggle).
+    // A subtle dotted ring distinguishes it from plain selected items so
+    // the user knows where Shift+click / Shift+Arrow will pivot from.
+    property bool selectionAnchor: false
+
+    // Parallel lists of storageIds and file:// URLs for the active multi-
+    // selection. Populated by the owning GridView only when `selected` is
+    // true so each delegate carries the bundle it would advertise if a
+    // drag started here. Empty/length-1 falls back to single-item drag.
+    property var multiSelectionSids: []
+    property var multiSelectionUrls: []
     signal clicked(var mouse)
 
     // Visual icon override for shuffle animation (set externally by the grid)
@@ -89,6 +105,24 @@ Item {
         visible: pointerDrag.active || touchDrag.active
     }
 
+    // -- Multi-select halo --
+    // Persistent accent fill+border for items in the selection. Sits below
+    // the content (z is default) so the icon and label stay legible.
+    Rectangle {
+        anchors.fill: parent
+        anchors.margins: Kirigami.Units.smallSpacing
+        radius: Kirigami.Units.cornerRadius
+        color: Qt.rgba(Kirigami.Theme.highlightColor.r,
+                       Kirigami.Theme.highlightColor.g,
+                       Kirigami.Theme.highlightColor.b, 0.18)
+        border.width: root.selectionAnchor ? 2 : 1
+        border.color: Qt.rgba(Kirigami.Theme.highlightColor.r,
+                              Kirigami.Theme.highlightColor.g,
+                              Kirigami.Theme.highlightColor.b,
+                              root.selectionAnchor ? 0.9 : 0.55)
+        visible: root.selected && !(pointerDrag.active || touchDrag.active)
+    }
+
     ColumnLayout {
         id: contentLayout
         anchors.fill: parent
@@ -119,6 +153,39 @@ Item {
                 anchors.right: parent.right
                 anchors.topMargin: -Kirigami.Units.smallSpacing
                 anchors.rightMargin: -Kirigami.Units.smallSpacing
+
+                Accessible.ignored: true
+            }
+
+            // Multi-select checkmark badge (top-left corner — top-right is
+            // reserved for the "New" dot). Filled circle in highlight color
+            // with a contrast-aware glyph so the mark stays legible against
+            // both dark and light Plasma themes. Uses a Unicode ✓ glyph
+            // instead of a themed icon so the badge renders identically on
+            // every Plasma icon theme (Breeze ships no "checkmark" name).
+            Rectangle {
+                visible: root.selected
+                width: Kirigami.Units.iconSizes.small
+                height: width
+                radius: width / 2
+                color: Kirigami.Theme.highlightColor
+                border.width: 1
+                border.color: Kirigami.Theme.backgroundColor
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.topMargin: -Kirigami.Units.smallSpacing
+                anchors.leftMargin: -Kirigami.Units.smallSpacing
+
+                Text {
+                    anchors.centerIn: parent
+                    anchors.verticalCenterOffset: -1
+                    text: "✓"
+                    color: Kirigami.Theme.highlightedTextColor
+                    font.pixelSize: parent.height * 0.75
+                    font.bold: true
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
 
                 Accessible.ignored: true
             }
@@ -174,7 +241,9 @@ Item {
             root.clicked({ button: Qt.RightButton, x: mouse.x, y: mouse.y })
         }
 
-        Accessible.name: root.appName + (root.isNew ? ", " + i18nd("dev.xarbit.appgrid", "new") : "")
+        Accessible.name: root.appName
+            + (root.isNew ? ", " + i18nd("dev.xarbit.appgrid", "new") : "")
+            + (root.selected ? ", " + i18nd("dev.xarbit.appgrid", "selected") : "")
         Accessible.role: Accessible.Button
         Accessible.description: root.appGenericName
         Accessible.focusable: true
@@ -198,10 +267,27 @@ Item {
             root.dragSource.endDrag()
             return
         }
-        const mime = root.desktopFileUrl.toString().length > 0
-            ? { "text/uri-list": [root.desktopFileUrl] }
-            : {}
-        root.dragSource.beginDrag(root, delegateIcon, mime, handler)
+        // Multi-drag activates only when this delegate is part of a 2+ item
+        // selection. DragSource caches the sid list so internal reorder can
+        // opt out; external targets (Plasma panel, Dolphin) consume the
+        // multi-entry text/uri-list directly.
+        const isMulti = root.selected
+                        && root.multiSelectionUrls.length > 1
+                        && root.multiSelectionSids.length > 1
+        let mime = {}
+        if (isMulti) {
+            // Newline-joined wire format per RFC 2483. The single-item
+            // path below relies on a `property url` for QString → QUrl
+            // coercion at the property boundary; that trick doesn't work
+            // for a JS array (Qt won't bulk-coerce its elements), so we
+            // pass the RFC text form instead — QMimeData parses it into
+            // QList<QUrl> on the drop side.
+            mime["text/uri-list"] = root.multiSelectionUrls.join("\r\n")
+        } else if (root.desktopFileUrl.toString().length > 0) {
+            mime["text/uri-list"] = [root.desktopFileUrl]
+        }
+        const sids = isMulti ? root.multiSelectionSids : []
+        root.dragSource.beginDrag(root, delegateIcon, mime, handler, sids)
     }
 
     DragHandler {

@@ -390,11 +390,13 @@ Kirigami.ShadowedRectangle {
 
         // Reset grid state
         appGrid.clearShuffles()
+        appGrid.clearSelection()
         appGrid.contentY = appGrid.originY
         appGrid.currentIndex = -1
         appGrid.recentIndex = -1
         searchResultsList.contentY = searchResultsList.originY
         categoryGridView.contentY = 0
+        categoryGridView.clearSelection()
         categoryGridView.currentIndex = -1
         categoryGridView.recentIndex = -1
         _needsScrollToTop = true
@@ -706,7 +708,9 @@ Kirigami.ShadowedRectangle {
                 onLaunched: function(proxyIndex) { panel.launchApp(proxyIndex) }
                 onRecentLaunched: function(storageId) { panel.launchAppByStorageId(storageId) }
                 onContextMenuRequested: function(proxyIndex, storageId, desktopFile) {
-                    contextMenu.showForApp(proxyIndex, storageId, desktopFile)
+                    const sids = categoryGridView.selectionContainsSid(storageId)
+                        ? categoryGridView.selectedSidList() : []
+                    contextMenu.showForApp(proxyIndex, storageId, desktopFile, sids)
                 }
             }
         }
@@ -761,7 +765,12 @@ Kirigami.ShadowedRectangle {
                     onLaunched: function(index) { panel.launchApp(index) }
                     onRecentLaunched: function(storageId) { panel.launchAppByStorageId(storageId) }
                     onContextMenuRequested: function(index, storageId, desktopFile) {
-                        contextMenu.showForApp(index, storageId, desktopFile)
+                        // Forward the active multi-selection only when the
+                        // right-clicked item is part of it; the delegate
+                        // already cleared selection otherwise.
+                        const sids = appGrid.selectionContainsSid(storageId)
+                            ? appGrid.selectedSidList() : []
+                        contextMenu.showForApp(index, storageId, desktopFile, sids)
                     }
                     onShuffleAnimRequested: function(fromX, fromY, toX, toY, fromIcon, toIcon, fromIndex, toIndex) {
                         shuffleOverlay.startAnim(fromX, fromY, toX, toY, fromIcon, toIcon, fromIndex, toIndex)

@@ -57,6 +57,72 @@ Flickable {
     readonly property int itemsPerRow: Math.max(1, Math.floor(width / cellWidth))
     readonly property int recentCount: showRecents && appsModel ? appsModel.recentApps.length : 0
 
+    // -- Multi-select --
+    // Always active in this view (no favorites/non-favorites split): the
+    // user can select any visible app and drag it out, or drag a multi-
+    // selection onto the Favorites tab to batch-add. See AppGridView for
+    // the analogous favorites-aware variant.
+    SelectionState {
+        id: selection
+        sidAt: function(idx) {
+            if (idx < 0 || idx >= categoryGrid.flatApps.length) return ""
+            return categoryGrid.flatApps[idx].storageId || ""
+        }
+        gridCount: categoryGrid.flatApps.length
+    }
+    readonly property bool multiSelectActive: flatApps.length > 0
+
+    property alias selectedSids: selection.selectionSids
+    property alias selectionAnchor: selection.anchor
+    readonly property alias selectionCount: selection.selectionCount
+
+    function selectionContainsSid(sid) { return selection.contains(sid) }
+    function selectedSidList() { return selection.sidList() }
+
+    function toggleSelectionAt(idx) {
+        if (multiSelectActive) selection.toggleAt(idx)
+    }
+    function rangeSelectTo(idx) {
+        if (multiSelectActive) selection.rangeTo(idx)
+    }
+    function selectAllVisible() {
+        if (multiSelectActive) selection.selectAll(currentIndex)
+    }
+    function clearSelection() { selection.clear() }
+
+    function selectedDesktopFileUrls() {
+        var urls = []
+        const sids = selectedSidList()
+        for (var i = 0; i < sids.length; ++i) {
+            const a = appsModel ? appsModel.getByStorageId(sids[i]) : null
+            if (a && a.desktopFile) urls.push("file://" + a.desktopFile)
+        }
+        return urls
+    }
+
+    // Clear selection whenever the grouped model is rebuilt (search, category
+    // pick) so the user doesn't carry ghost selections across filter changes.
+    onGroupedAppsChanged: clearSelection()
+
+    function _arrowMoveWithSelection(event, moveFn) {
+        const shift = (event.modifiers & Qt.ShiftModifier) !== 0
+        if (multiSelectActive && shift) {
+            if (selectionAnchor < 0) selectionAnchor = currentIndex
+            moveFn()
+            rangeSelectTo(currentIndex)
+        } else {
+            if (!shift) clearSelection()
+            moveFn()
+        }
+    }
+
+    Shortcut {
+        sequence: StandardKey.SelectAll
+        enabled: categoryGrid.multiSelectActive && categoryGrid.activeFocus
+                 && categoryGrid.flatApps.length > 0
+        onActivated: categoryGrid.selectAllVisible()
+    }
+
     function selectFirst() {
         if (showRecents && recentCount > 0) {
             recentIndex = 0
@@ -91,33 +157,41 @@ Flickable {
         }
     }
 
-    Keys.onLeftPressed: {
+    Keys.onLeftPressed: function(event) {
         if (recentIndex > 0) { recentIndex-- }
-        else if (currentIndex > 0) { currentIndex--; ensureVisible() }
+        else _arrowMoveWithSelection(event, function() {
+            if (currentIndex > 0) { currentIndex--; ensureVisible() }
+        })
     }
-    Keys.onRightPressed: {
+    Keys.onRightPressed: function(event) {
         if (recentIndex >= 0 && recentIndex < recentCount - 1) { recentIndex++ }
-        else if (currentIndex < flatApps.length - 1) { currentIndex++; ensureVisible() }
+        else _arrowMoveWithSelection(event, function() {
+            if (currentIndex < flatApps.length - 1) { currentIndex++; ensureVisible() }
+        })
     }
-    Keys.onUpPressed: {
+    Keys.onUpPressed: function(event) {
         if (recentIndex >= 0) {
             var newIdx = recentIndex - itemsPerRow
             if (newIdx >= 0) { recentIndex = newIdx }
             else { recentIndex = -1; currentIndex = -1; if (searchField) searchField.forceActiveFocus() }
         } else if (currentIndex >= itemsPerRow) {
-            currentIndex -= itemsPerRow; ensureVisible()
+            _arrowMoveWithSelection(event, function() {
+                currentIndex -= itemsPerRow; ensureVisible()
+            })
         } else if (currentIndex >= 0 && showRecents && recentCount > 0) {
             // Move from first row of categories into recents
             var lastRow = Math.floor((recentCount - 1) / itemsPerRow)
             recentIndex = Math.min(currentIndex + lastRow * itemsPerRow, recentCount - 1)
             currentIndex = -1
             contentY = 0
+            clearSelection()
         } else if (currentIndex >= 0) {
             currentIndex = -1
+            clearSelection()
             if (searchField) searchField.forceActiveFocus()
         }
     }
-    Keys.onDownPressed: {
+    Keys.onDownPressed: function(event) {
         if (recentIndex >= 0) {
             var newIdx = recentIndex + itemsPerRow
             if (newIdx < recentCount) { recentIndex = newIdx }
@@ -130,7 +204,9 @@ Flickable {
         } else if (currentIndex < 0) {
             selectFirst()
         } else if (currentIndex + itemsPerRow < flatApps.length) {
-            currentIndex += itemsPerRow; ensureVisible()
+            _arrowMoveWithSelection(event, function() {
+                currentIndex += itemsPerRow; ensureVisible()
+            })
         }
     }
     Keys.onReturnPressed: {
@@ -138,13 +214,29 @@ Flickable {
             recentLaunched(appsModel.recentApps[recentIndex])
         else if (currentIndex >= 0 && currentIndex < flatApps.length)
             launched(flatApps[currentIndex].proxyIndex)
+        clearSelection()
     }
     Keys.onEnterPressed: Keys.onReturnPressed(event)
+    Keys.onEscapePressed: function(event) {
+        if (selectionCount > 0 || selectionAnchor >= 0) {
+            clearSelection()
+            event.accepted = true
+        }
+    }
     Keys.onTabPressed: function(event) { event.accepted = true }
     Keys.onBacktabPressed: function(event) { event.accepted = true }
     Keys.onPressed: function(event) {
         if (event.key === Qt.Key_Tab || event.key === Qt.Key_Backtab)
             return
+        // Space toggles selection on focused item (see AppGridView). Caught
+        // here ahead of the search-bar typing redirect that would otherwise
+        // swallow the printable " ".
+        if (event.key === Qt.Key_Space && multiSelectActive
+                && currentIndex >= 0 && recentIndex < 0) {
+            toggleSelectionAt(currentIndex)
+            event.accepted = true
+            return
+        }
         if (event.text.length > 0 && !event.modifiers && searchField) {
             searchField.forceActiveFocus()
             searchField.text += event.text
@@ -269,11 +361,40 @@ Flickable {
                                 storageId: modelData.storageId || ""
                                 desktopFile: modelData.desktopFile || ""
                                 dragSource: categoryGrid.dragSource
+
+                                selected: categoryGrid.multiSelectActive
+                                          && !!categoryGrid.selectedSids[modelData.storageId || ""]
+                                selectionAnchor: categoryGrid.multiSelectActive
+                                                 && categoryGrid.selectionAnchor === parent.flatIndex
+                                                 && categoryGrid.selectionCount > 0
+                                multiSelectionSids: selected ? categoryGrid.selectedSidList() : []
+                                multiSelectionUrls: selected ? categoryGrid.selectedDesktopFileUrls() : []
+
                                 onClicked: function(mouse) {
-                                    if (mouse.button === Qt.RightButton)
-                                        categoryGrid.contextMenuRequested(modelData.proxyIndex, modelData.storageId || "", modelData.desktopFile || "")
-                                    else
-                                        categoryGrid.launched(modelData.proxyIndex)
+                                    const sid = modelData.storageId || ""
+                                    if (mouse.button === Qt.RightButton) {
+                                        if (categoryGrid.multiSelectActive
+                                                && categoryGrid.selectionCount > 0
+                                                && !categoryGrid.selectionContainsSid(sid)) {
+                                            categoryGrid.clearSelection()
+                                        }
+                                        categoryGrid.contextMenuRequested(modelData.proxyIndex, sid, modelData.desktopFile || "")
+                                        return
+                                    }
+                                    if (categoryGrid.multiSelectActive) {
+                                        if (mouse.modifiers & Qt.ControlModifier) {
+                                            categoryGrid.currentIndex = parent.flatIndex
+                                            categoryGrid.toggleSelectionAt(parent.flatIndex)
+                                            return
+                                        }
+                                        if (mouse.modifiers & Qt.ShiftModifier) {
+                                            categoryGrid.currentIndex = parent.flatIndex
+                                            categoryGrid.rangeSelectTo(parent.flatIndex)
+                                            return
+                                        }
+                                    }
+                                    categoryGrid.clearSelection()
+                                    categoryGrid.launched(modelData.proxyIndex)
                                 }
 
                                 Connections {

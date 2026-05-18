@@ -66,4 +66,23 @@ Item {
                  && gridView.currentIndex - gridView.effectiveColumns >= 0
         onActivated: shortcuts.reorderTo(gridView.currentIndex - gridView.effectiveColumns)
     }
+
+    // --- Multi-select (Favorites only) ---
+
+    Shortcut {
+        sequence: StandardKey.SelectAll
+        enabled: gridView.multiSelectActive && gridView.activeFocus
+                 && gridView.count > 0
+        onActivated: gridView.selectAllVisible()
+    }
+    // Delete intentionally gated to the favorites view — the All / category
+    // views have nothing to remove (apps are listed, not owned). Silently
+    // doing nothing on Delete elsewhere reads as broken UX; better to leave
+    // the key unbound there.
+    Shortcut {
+        sequence: "Delete"
+        enabled: gridView.favoritesActive && gridView.multiSelectActive
+                 && gridView.activeFocus && gridView.selectionCount > 0
+        onActivated: gridView.removeSelectedFromFavorites()
+    }
 }

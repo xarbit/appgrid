@@ -37,6 +37,12 @@ Item {
     property string sourceStorageId: ""
     property string sourceDesktopFile: ""
 
+    // Cached selection at beginDrag() — populated only when the dragged item
+    // was part of a multi-selection (length > 1). FavoritesReorderArea reads
+    // this to skip internal reorder for multi-drags (drag-out only) and the
+    // drop target sees the full URL list via Drag.mimeData "text/uri-list".
+    property var sourceStorageIds: []
+
     readonly property bool isDragInFlight: source.Drag.active
 
     Drag.dragType: Drag.Automatic
@@ -51,12 +57,13 @@ Item {
     // `handler` parameter is the originating DragHandler — its active flag
     // is re-checked once grabToImage completes so we don't activate a stale
     // drag if the user released before the snapshot was ready.
-    function beginDrag(delegate, iconItem, mimeData, handler) {
+    function beginDrag(delegate, iconItem, mimeData, handler, sids) {
         iconItem.grabToImage(function(result) {
             if (!handler.active) return
             source.sourceItem = delegate
             source.sourceStorageId = delegate.storageId || ""
             source.sourceDesktopFile = delegate.desktopFile || ""
+            source.sourceStorageIds = sids && sids.length > 1 ? sids : []
             source.Drag.imageSource = result.url
             source.Drag.mimeData = mimeData
             source.Drag.active = true
@@ -71,5 +78,6 @@ Item {
         source.sourceItem = null
         source.sourceStorageId = ""
         source.sourceDesktopFile = ""
+        source.sourceStorageIds = []
     }
 }
