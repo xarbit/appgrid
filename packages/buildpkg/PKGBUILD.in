@@ -1,0 +1,69 @@
+# SPDX-FileCopyrightText: 2026 AppGrid Contributors
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
+# Arch PKGBUILD template. CI substitutes the ${...} placeholders via
+# envsubst, then runs `makepkg --noconfirm` to produce a
+# .pkg.tar.zst alongside the .rpm / .deb / universal artifacts.
+#
+# Expected env at substitution time:
+#   PKG_VERSION    — pacman-safe pkgver (no '-' or '+'; e.g. "1.8.0"
+#                    or "1.8.0_dev.42" for dev builds)
+#   PKG_RELEASE    — pkgrel (usually "1")
+#   APP_VERSION    — full version baked into the binary; passed as
+#                    -DAPPGRID_VERSION_OVERRIDE so the binary's
+#                    self-reported version matches the release tag
+#
+# Keep depends in sync with the AUR-shipped PKGBUILD
+# (https://aur.archlinux.org/packages/plasma6-applets-appgrid).
+#
+# Maintainer: Jason Scurtu <code@xarbit.dev>
+# Contributor: HurricanePootis <hurricanepootis@protonmail.com>
+
+pkgname=plasma6-applets-appgrid
+pkgver=${PKG_VERSION}
+pkgrel=${PKG_RELEASE}
+pkgdesc="A modern fullscreen application launcher for KDE Plasma"
+arch=('x86_64')
+url="https://github.com/xarbit/plasma6-applet-appgrid"
+license=('GPL-2.0-or-later')
+depends=(
+    'plasma-workspace'
+    'kservice'
+    'layer-shell-qt'
+    'qt6-base'
+    'kirigami'
+    'kiconthemes'
+    'ksvg'
+    'glibc'
+    'kio'
+    'krunner'
+    'kdeclarative'
+    'qt6-declarative'
+    'libstdc++'
+    'libgcc'
+    'kcoreaddons'
+    'kwindowsystem'
+    'kcmutils'
+    'libplasma'
+)
+makedepends=(
+    'cmake'
+    'extra-cmake-modules'
+)
+# CI builds in-tree against $startdir (a checkout of the repo). The
+# AUR-published PKGBUILD overrides this with source=(tarball-from-github)
+# + a real sha256sum.
+source=()
+sha256sums=()
+
+build() {
+    cmake -B build -S "$startdir" \
+        -DCMAKE_BUILD_TYPE=None \
+        -DCMAKE_INSTALL_PREFIX=/usr \
+        -DAPPGRID_VERSION_OVERRIDE="${APP_VERSION}"
+    cmake --build build
+}
+
+package() {
+    DESTDIR="$pkgdir" cmake --install build
+}

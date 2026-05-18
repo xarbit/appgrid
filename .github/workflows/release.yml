@@ -73,32 +73,42 @@ jobs:
         run: |
           pacman -Syu --noconfirm
           pacman -S --noconfirm --needed \
-            base-devel git cmake extra-cmake-modules \
+            base-devel git sudo \
+            cmake extra-cmake-modules \
             qt6-base qt6-declarative \
-            libplasma kpackage kio kservice ki18n \
-            kcoreaddons kwindowsystem krunner layer-shell-qt \
-            plasma-workspace
+            libplasma kpackage kio kservice ki18n kirigami \
+            kcoreaddons kwindowsystem krunner layer-shell-qt plasma-activities \
+            plasma-workspace gettext
 
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Build
+      # makepkg refuses to run as root — make a regular user for the build.
+      - name: Create builder user
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX=/usr \
-            -DAPPGRID_VERSION_OVERRIDE="$APP_VERSION"
-          cmake --build build -j$(nproc)
+          useradd -m builder
+          echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+          chown -R builder:builder .
 
-      - name: Package
+      - name: Package via makepkg
         run: |
-          DESTDIR="$PWD/pkg" cmake --install build
-          cd pkg
-          tar czf ../plasma6-applets-appgrid-${APP_VERSION}-1-arch-x86_64.tar.gz .
+          # Render PKGBUILD from PKGBUILD.in via envsubst, same pattern
+          # the .rpm/.deb specs use. PKG_VERSION must be pacman-safe
+          # (no '-' or '+'); APP_VERSION keeps the full string so the
+          # binary's self-reported version still matches the release tag.
+          export PKG_VERSION=$(echo "$APP_VERSION" | sed 's/-/_/g; s/+.*//')
+          export PKG_RELEASE=1
+          export APP_VERSION
+          envsubst < packages/buildpkg/PKGBUILD.in > ./PKGBUILD
+          chown -R builder:builder .
+          sudo -u builder makepkg --noconfirm --skipinteg --syncdeps --rmdeps
+          ls -la *.pkg.tar.zst
 
       - name: Upload artifact
         uses: actions/upload-artifact@v5
         with:
           name: arch-package
-          path: plasma6-applets-appgrid-*.tar.gz
+          path: plasma6-applets-appgrid-*.pkg.tar.zst
 
   fedora:
     name: Fedora (${{ matrix.arch }})
@@ -314,7 +324,7 @@ jobs:
       - name: Generate SHA256 sidecars for distro packages
         run: |
           set -e
-          find artifacts -type f \( -name '*.rpm' -o -name '*.deb' \) | while read -r f; do
+          find artifacts -type f \( -name '*.rpm' -o -name '*.deb' -o -name '*.pkg.tar.zst' \) | while read -r f; do
             ( cd "$(dirname "$f")" && sha256sum "$(basename "$f")" > "$(basename "$f").sha256" )
           done
           echo "=== sidecars created ==="
