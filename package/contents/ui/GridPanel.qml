@@ -708,9 +708,8 @@ Kirigami.ShadowedRectangle {
                 onLaunched: function(proxyIndex) { panel.launchApp(proxyIndex) }
                 onRecentLaunched: function(storageId) { panel.launchAppByStorageId(storageId) }
                 onContextMenuRequested: function(proxyIndex, storageId, desktopFile) {
-                    const sids = categoryGridView.selectionContainsSid(storageId)
-                        ? categoryGridView.selectedSidList() : []
-                    contextMenu.showForApp(proxyIndex, storageId, desktopFile, sids)
+                    contextMenu.showForApp(proxyIndex, storageId, desktopFile,
+                                           categoryGridView.selectedSidList())
                 }
             }
         }
@@ -765,12 +764,12 @@ Kirigami.ShadowedRectangle {
                     onLaunched: function(index) { panel.launchApp(index) }
                     onRecentLaunched: function(storageId) { panel.launchAppByStorageId(storageId) }
                     onContextMenuRequested: function(index, storageId, desktopFile) {
-                        // Forward the active multi-selection only when the
-                        // right-clicked item is part of it; the delegate
-                        // already cleared selection otherwise.
-                        const sids = appGrid.selectionContainsSid(storageId)
-                            ? appGrid.selectedSidList() : []
-                        contextMenu.showForApp(index, storageId, desktopFile, sids)
+                        // Forward the full live selection — the menu derives
+                        // both popupIsSelected (for the toggle item) and the
+                        // bulk-mode counts from it. Empty when nothing is
+                        // selected.
+                        contextMenu.showForApp(index, storageId, desktopFile,
+                                               appGrid.selectedSidList())
                     }
                     onShuffleAnimRequested: function(fromX, fromY, toX, toY, fromIcon, toIcon, fromIndex, toIndex) {
                         shuffleOverlay.startAnim(fromX, fromY, toX, toY, fromIcon, toIcon, fromIndex, toIndex)
@@ -820,6 +819,15 @@ Kirigami.ShadowedRectangle {
             if (!sids || sids.length === 0) return
             bulkHideDialog.pendingSids = sids
             bulkHideDialog.open()
+        }
+
+        // Route the single-menu "Add to selection" / "Remove from selection"
+        // item to whichever grid is currently showing. Search results and
+        // recents don't own a SelectionState; they simply ignore the toggle.
+        onToggleSelectionRequested: function(sid) {
+            if (!sid) return
+            if (panel.showAppGrid) appGrid.toggleSelectionBySid(sid)
+            else if (panel.showCategoryGrid) categoryGridView.toggleSelectionBySid(sid)
         }
     }
 

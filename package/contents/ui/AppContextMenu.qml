@@ -24,6 +24,10 @@ PlasmaComponents.Menu {
     // immediately reversible (unpin / delete launcher / overwrite clipboard).
     signal bulkLaunchRequested(var sids)
     signal bulkHideRequested(var sids)
+    // Single-menu "Add to selection" / "Remove from selection" — emitted up
+    // to GridPanel which routes the toggle to whichever grid currently owns
+    // the selection state.
+    signal toggleSelectionRequested(string sid)
 
     // Plasmoid root. Deliberately `var`, not typed as PlasmoidItem,
     // for two reasons: typing it would force every consumer to import
@@ -41,13 +45,18 @@ PlasmaComponents.Menu {
 
     property var popupActions: []
 
-    // Multi-select payload — non-empty when the right-clicked item belongs
-    // to an active selection of 2+ items. The menu hides single-item-only
-    // actions (pin/desktop/edit/hide/jumplist) and surfaces bulk Add and/or
-    // Remove rows whose counts reflect what each op would actually touch
-    // (mixed selections show both, uniform shows only the relevant one).
+    // Live selection snapshot from the originating view. May be empty (no
+    // multi-select), contain the popup item, or contain other items only.
+    // The menu shape branches on:
+    //   * popupIsSelected   — right-clicked item is itself selected
+    //   * isMultiSelect     — popup is selected AND total >= 2; gates the
+    //                         bulk action rows. A single-item selection
+    //                         (the popup alone) stays in single-item mode
+    //                         so "Remove from selection" can clear it.
     property var popupSelectedSids: []
-    readonly property bool isMultiSelect: popupSelectedSids.length >= 2
+    property bool popupIsSelected: false
+    readonly property bool isMultiSelect: popupIsSelected
+                                          && popupSelectedSids.length >= 2
     // Per-action counts — derived once at showForApp() rather than as live
     // bindings, since the selection is a snapshot taken at right-click time
     // and we don't want the menu re-counting if the model mutates while
@@ -60,6 +69,7 @@ PlasmaComponents.Menu {
         popupStorageId = storageId
         popupDesktopFile = desktopFile
         popupSelectedSids = selectedSids || []
+        popupIsSelected = popupSelectedSids.indexOf(storageId) >= 0
         const prefixed = FavoriteId.toPrefixed(storageId)
         popupIsFavorite = sharedFavoritesModel
                           ? sharedFavoritesModel.isFavorite(prefixed)
@@ -281,6 +291,31 @@ PlasmaComponents.Menu {
                     contextMenu.sharedFavoritesModel.addFavorite(prefixed)
             }
         }
+        Accessible.name: text
+        Accessible.role: Accessible.MenuItem
+    }
+
+    // Separator before the selection toggle when shown alongside the bulk
+    // section, so "Remove from Selection" doesn't visually stick to the
+    // last bulk Hide row. Hidden in single-menu mode where the existing
+    // Add/Remove Favorites row already sits directly above.
+    PlasmaComponents.MenuSeparator {
+        visible: contextMenu.isMultiSelect
+        height: visible ? implicitHeight : 0
+    }
+
+    // Right-click path into the multi-select flow for users who don't
+    // reach for Ctrl+click. Shown in both single and bulk menus: Add
+    // appears for any unselected popup (build up a selection one item at
+    // a time); Remove appears for any selected popup (shrink the
+    // selection by one without clearing the rest).
+    PlasmaComponents.MenuItem {
+        icon.name: contextMenu.popupIsSelected ? "edit-select-none" : "edit-select-all"
+        text: contextMenu.popupIsSelected
+              ? i18nd("dev.xarbit.appgrid", "Remove from Selection")
+              : i18nd("dev.xarbit.appgrid", "Add to Selection")
+        height: visible ? implicitHeight : 0
+        onClicked: contextMenu.toggleSelectionRequested(contextMenu.popupStorageId)
         Accessible.name: text
         Accessible.role: Accessible.MenuItem
     }

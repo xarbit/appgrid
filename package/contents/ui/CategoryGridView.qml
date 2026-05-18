@@ -82,6 +82,9 @@ Flickable {
     function toggleSelectionAt(idx) {
         if (multiSelectActive) selection.toggleAt(idx)
     }
+    function toggleSelectionBySid(sid) {
+        if (multiSelectActive) selection.toggleSid(sid, -1)
+    }
     function rangeSelectTo(idx) {
         if (multiSelectActive) selection.rangeTo(idx)
     }
@@ -357,8 +360,9 @@ Flickable {
                                 onClicked: function(mouse) {
                                     const sid = modelData.storageId || ""
                                     if (mouse.button === Qt.RightButton) {
-                                        if (categoryGrid.multiSelectActive)
-                                            selection.purgeIfOutside(sid)
+                                        // Selection persists — menu shows
+                                        // "Add to selection" / "Remove from
+                                        // selection" based on popup item.
                                         categoryGrid.contextMenuRequested(modelData.proxyIndex, sid, modelData.desktopFile || "")
                                         return
                                     }

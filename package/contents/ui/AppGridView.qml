@@ -246,6 +246,9 @@ GridView {
     function toggleSelectionAt(idx) {
         if (multiSelectActive) selection.toggleAt(idx)
     }
+    function toggleSelectionBySid(sid) {
+        if (multiSelectActive) selection.toggleSid(sid, -1)
+    }
     function rangeSelectTo(idx) {
         if (multiSelectActive) selection.rangeTo(idx)
     }
@@ -507,8 +510,8 @@ GridView {
                     ? (delegateRoot._appData ? delegateRoot._appData.desktopFile || "" : "")
                     : (model.desktopFile || "")
                 if (mouse.button === Qt.RightButton) {
-                    if (gridView.multiSelectActive)
-                        selection.purgeIfOutside(delegateRoot._sid)
+                    // Selection persists across right-click so the menu can
+                    // surface "Add to selection" / "Remove from selection".
                     gridView.contextMenuRequested(model.index, delegateRoot._sid, desktopFile)
                     return
                 }

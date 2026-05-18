@@ -56,14 +56,22 @@ Item {
         return arr
     }
 
-    function toggleAt(idx) {
-        const sid = sidAt(idx)
+    // Direct sid toggle — used when the caller already has a storageId
+    // (e.g. the right-click menu's "Add to selection" item) and cannot
+    // resolve a grid index. Pass -1 for anchorIdx to leave the anchor
+    // unchanged from its current value when no meaningful index is known.
+    function toggleSid(sid, anchorIdx) {
         if (!sid) return
         var copy = Object.assign({}, selectionSids)
         if (copy[sid]) delete copy[sid]
         else copy[sid] = true
         selectionSids = copy
-        anchor = idx
+        if (anchorIdx !== undefined && anchorIdx >= 0)
+            anchor = anchorIdx
+    }
+
+    function toggleAt(idx) {
+        toggleSid(sidAt(idx), idx)
     }
 
     function rangeTo(idx) {
@@ -115,14 +123,6 @@ Item {
         if (mouse.modifiers & Qt.ControlModifier) { toggleAt(idx); return true }
         if (mouse.modifiers & Qt.ShiftModifier)   { rangeTo(idx);  return true }
         return false
-    }
-
-    // Right-click on an unselected item collapses any pending selection so
-    // the context menu operates on the clicked item only. Selected-item
-    // right-clicks pass through untouched (the menu's multi-aware branch
-    // picks up the live selection).
-    function purgeIfOutside(sid) {
-        if (selectionCount > 0 && !contains(sid)) clear()
     }
 
     // Drive an arrow-key navigation step that may double as a Shift-extend
