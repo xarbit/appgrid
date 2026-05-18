@@ -275,11 +275,11 @@ jobs:
               test -f /usr/lib64/cmake/Qt6/Qt6Config.cmake \
                 || { echo "ERROR: qt6-qtbase-devel install incomplete"; rpm -V qt6-qtbase-devel; exit 1; }
               cd /workspace
-              # Pin plugin path: install.py's env script only adds
-              # ~/.local/lib/qt6/plugins/ to QT_PLUGIN_PATH; ECM's default
-              # lib64/ won't be found.
+              # Pin plugin path + explicit Qt6_DIR (see build.yml note).
               cmake -B build -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
                   -DAPPGRID_UNIVERSAL_BUILD=ON \
+                  -DQt6_DIR=/usr/lib64/cmake/Qt6 \
+                  -DCMAKE_PREFIX_PATH=/usr/lib64/cmake \
                   -DKDE_INSTALL_QTPLUGINDIR=lib/qt6/plugins \
                   -DAPPGRID_VERSION_OVERRIDE="$APP_VERSION"
               cmake --build build -j$(nproc)

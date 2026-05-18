@@ -414,8 +414,13 @@ jobs:
               # Pin plugin path: install.py's env script only adds
               # ~/.local/lib/qt6/plugins/ to QT_PLUGIN_PATH; ECM's default
               # lib64/ won't be found.
+              # Qt6_DIR: GitHub-hosted fedora:42 runs don't search
+              # /usr/lib64/cmake/ by default even though the file is on
+              # disk — point CMake directly at the config dir.
               cmake -B build -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
                   -DAPPGRID_UNIVERSAL_BUILD=ON \
+                  -DQt6_DIR=/usr/lib64/cmake/Qt6 \
+                  -DCMAKE_PREFIX_PATH=/usr/lib64/cmake \
                   -DKDE_INSTALL_QTPLUGINDIR=lib/qt6/plugins \
                   -DAPPGRID_VERSION_OVERRIDE="$APP_VERSION"
               cmake --build build -j$(nproc)
