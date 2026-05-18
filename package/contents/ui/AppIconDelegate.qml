@@ -157,38 +157,6 @@ Item {
                 Accessible.ignored: true
             }
 
-            // Multi-select checkmark badge (top-left corner — top-right is
-            // reserved for the "New" dot). Filled circle in highlight color
-            // with a contrast-aware glyph so the mark stays legible against
-            // both dark and light Plasma themes. Uses a Unicode ✓ glyph
-            // instead of a themed icon so the badge renders identically on
-            // every Plasma icon theme (Breeze ships no "checkmark" name).
-            Rectangle {
-                visible: root.selected
-                width: Kirigami.Units.iconSizes.small
-                height: width
-                radius: width / 2
-                color: Kirigami.Theme.highlightColor
-                border.width: 1
-                border.color: Kirigami.Theme.backgroundColor
-                anchors.top: parent.top
-                anchors.left: parent.left
-                anchors.topMargin: -Kirigami.Units.smallSpacing
-                anchors.leftMargin: -Kirigami.Units.smallSpacing
-
-                Text {
-                    anchors.centerIn: parent
-                    anchors.verticalCenterOffset: -1
-                    text: "✓"
-                    color: Kirigami.Theme.highlightedTextColor
-                    font.pixelSize: parent.height * 0.75
-                    font.bold: true
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                }
-
-                Accessible.ignored: true
-            }
         }
 
         PlasmaComponents.Label {
