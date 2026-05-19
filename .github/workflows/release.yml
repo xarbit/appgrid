@@ -307,6 +307,7 @@ jobs:
                 qt6-qtbase-devel qt6-qtdeclarative-devel \
                 libplasma-devel kf6-kpackage-devel kf6-kio-devel \
                 kf6-kservice-devel kf6-ki18n-devel kf6-kcoreaddons-devel \
+                kf6-kiconthemes-devel \
                 kf6-kwindowsystem-devel kf6-krunner-devel layer-shell-qt-devel \
                 plasma-activities-devel plasma-workspace-devel \
                 gettext
