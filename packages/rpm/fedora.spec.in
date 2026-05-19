@@ -16,7 +16,7 @@ Release:        1.fc${DISTRO_VER}
 Summary:        A modern fullscreen application launcher for KDE Plasma
 License:        GPL-2.0-or-later
 URL:            https://appgrid.xarbit.dev
-Requires:       plasma-workspace plasma-desktop
+Requires:       plasma-workspace plasma-desktop kf6-kiconthemes
 
 %description
 A modern fullscreen application launcher for KDE Plasma,

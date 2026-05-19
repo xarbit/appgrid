@@ -3,7 +3,7 @@ Version: ${PKG_SUFFIX}
 Section: kde
 Priority: optional
 Architecture: ${DEB_ARCH}
-Depends: plasma-workspace, plasma-desktop, libkf6service6, libkf6i18n6
+Depends: plasma-workspace, plasma-desktop, libkf6service6, libkf6i18n6, libkf6iconthemes6
 Maintainer: Jason Scurtu <code@xarbit.dev>
 Description: A modern fullscreen application launcher for KDE Plasma
  A modern fullscreen application launcher for KDE Plasma,

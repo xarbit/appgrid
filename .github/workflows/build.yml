@@ -205,7 +205,7 @@ jobs:
             base-devel git sudo \
             cmake extra-cmake-modules \
             qt6-base qt6-declarative \
-            libplasma kpackage kio kservice ki18n kirigami \
+            libplasma kpackage kio kservice ki18n kiconthemes kirigami \
             kcoreaddons kwindowsystem krunner layer-shell-qt plasma-activities \
             plasma-workspace gettext
 
@@ -285,6 +285,7 @@ jobs:
                 qt6-qtbase-devel qt6-qtdeclarative-devel \
                 libplasma-devel kf6-kpackage-devel kf6-kio-devel \
                 kf6-kservice-devel kf6-ki18n-devel kf6-kcoreaddons-devel \
+                kf6-kiconthemes-devel \
                 kf6-kwindowsystem-devel kf6-krunner-devel layer-shell-qt-devel \
                 plasma-activities-devel plasma-workspace-devel \
                 gettext rpm-build
@@ -350,6 +351,7 @@ jobs:
                 qt6-base-dev qt6-declarative-dev \
                 libplasma-dev libkf6package-dev libkf6kio-dev \
                 libkf6service-dev libkf6i18n-dev libkf6coreaddons-dev \
+                libkf6iconthemes-dev \
                 libkf6windowsystem-dev libkf6runner-dev \
                 libplasmaactivities-dev \
                 liblayershellqtinterface-dev \
